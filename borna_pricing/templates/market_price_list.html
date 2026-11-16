@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}خواندن لیست قیمت{% endblock %}
+{% block content %}
+<div class="page-title"><h1>خواندن لیست قیمت رقیب</h1><p>متن لیستی را که در کانال یا پیام‌رسان آمده بچسبانید؛ ردیف‌ها و کالای معادل برنا پیشنهاد می‌شود.</p></div>
+{{ subnav('market_price_list') }}
+{% for n in notes %}<div class="flash warn">{{ n }}</div>{% endfor %}
+<section class="panel" style="margin-top:0"><div class="body">
+  <form method="post" class="form-grid">{{ csrf() }}
+    <input type="hidden" name="action" value="parse">
+    <label class="field">رقیب یا کانال *<input type="text" name="seller" value="{{ form.seller or '' }}" maxlength="120" required></label>
+    <label class="field">از کجا<select name="channel">{% for k, v in CHANNELS.items() %}<option value="{{ k }}"{% if form.channel == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field">سطح قیمت<select name="price_level">{% for k, v in LEVEL_LABELS.items() %}<option value="{{ k }}"{% if form.price_level == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field">واحد<select name="unit">{% for k, v in UNIT_LABELS.items() %}<option value="{{ k }}"{% if form.unit == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field">ضریب ارقام<select name="multiplier"><option value="auto"{% if form.multiplier == 'auto' %} selected{% endif %}>خودکار از متن</option><option value="1"{% if form.multiplier == '1' %} selected{% endif %}>همان عدد</option><option value="1000"{% if form.multiplier == '1000' %} selected{% endif %}>به هزار (مثلاً ۲۴۵۰ یعنی ۲٬۴۵۰٬۰۰۰)</option></select></label>
+    <label class="field">اصالت کالاهای لیست<select name="tier">{% for k, v in TIER_LABELS.items() %}<option value="{{ k }}"{% if form.tier == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field wide">متن لیست قیمت *<textarea name="text" required maxlength="20000" style="min-height:180px">{{ form.text or '' }}</textarea></label>
+    {% if ai_ready() %}<label class="checkline small wide"><input type="checkbox" name="use_model" value="1"{% if form.use_model == '1' %} checked{% endif %}> خواندن با مدل زبانی (برای متن‌های نامرتب)</label>{% endif %}
+    <div class="wide"><button class="btn">خواندن ردیف‌ها</button></div>
+  </form>
+</div></section>
+{% if rows %}
+<section class="panel"><header><h2>{{ rows|length|fa }} ردیف خوانده شد</h2><span class="small muted">پیش از ثبت، ردیف‌ها و کالای معادل را بررسی کنید. متن کامل لیست به‌عنوان مدرک کنار هر قیمت ذخیره می‌شود.</span></header>
+  <form method="post">{{ csrf() }}
+    <input type="hidden" name="action" value="confirm"><input type="hidden" name="n" value="{{ rows|length }}">
+    {% for k in ('seller', 'channel', 'price_level', 'tier', 'text') %}<input type="hidden" name="{{ k }}" value="{{ form[k] or '' }}">{% endfor %}
+    <div class="tbl-wrap"><table class="data">
+      <thead><tr><th>ثبت</th><th>عنوان در لیست</th><th>متن قیمت</th><th class="num">قیمت (تومان)</th><th>خوانده‌شده از عنوان</th><th>کالای برنا</th></tr></thead>
+      <tbody>{% for r in rows %}{% set i = loop.index0 %}<tr>
+        <td><input type="checkbox" name="include_{{ i }}" value="1"{% if r.include and (r.price_rial or r.availability == 'out_of_stock') %} checked{% endif %} aria-label="ثبت این ردیف">
+          <input type="hidden" name="title_{{ i }}" value="{{ r.title }}"><input type="hidden" name="price_rial_{{ i }}" value="{{ r.price_rial or '' }}"><input type="hidden" name="availability_{{ i }}" value="{{ r.availability }}"></td>
+        <td>{{ r.title }}{% if r.attrs.family != 'o2' %}<span class="sub">سنسور اکسیژن نیست</span>{% endif %}{% if r.source == 'model' %} {{ tag('info', 'مدل') }}{% endif %}</td>
+        <td class="small">{{ r.price_text or '—' }}</td>
+        <td class="num">{{ r.price_rial|toman if r.price_rial else ('ناموجود' if r.availability == 'out_of_stock' else '—') }}</td>
+        <td class="small">{{ attr_display('ecus', r.attrs.ecus) }} / {{ attr_display('socket_color', r.attrs.socket_color) }} / {{ attr_display('length_mm', r.attrs.length_mm) }}</td>
+        <td><select name="product_{{ i }}" aria-label="کالای برنا"><option value="">نامشخص</option>{% for p in products %}<option value="{{ p.key }}"{% if r.product_key == p.key %} selected{% endif %}>{{ p.key }}{% if r.options and p.key in r.options %} ✓{% endif %}</option>{% endfor %}</select>
+          {% if r.verdict %}<span class="sub">{{ VERDICT_LABELS.get(r.verdict, r.verdict) }}{% if r.options %}: {{ r.options|join('، ') }}{% endif %}</span>{% endif %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    <div class="body"><button class="btn">ثبت ردیف‌های انتخاب‌شده</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

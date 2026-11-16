@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, status_tag, days_label with context %}
+{% block title %}{{ c.name if c else 'مشتری تازه' }}{% endblock %}
+{% block content %}
+<div class="page-title"><h1>{{ c.name if c else 'مشتری تازه' }}</h1>{% if c %}<p><a class="btn small" href="{{ url_for('sales_inquiry_new', customer=c.id) }}">استعلام تازه</a> <a class="btn small quiet" href="{{ url_for('sales_order_new', customer=c.id) }}">سفارش تازه</a></p>{% endif %}</div>
+{{ subnav('sales_customers') }}
+<div class="cols">
+  <section class="panel" style="margin-top:0"><header><h2>مشخصات</h2></header><div class="body">
+    <form method="post" class="form-grid">{{ csrf() }}
+      <label class="field">نام *<input type="text" name="name" value="{{ form.name or '' }}" required maxlength="120"></label>
+      <label class="field">نوع<select name="kind">{% for k, v in CUSTOMER_KINDS.items() %}<option value="{{ k }}"{% if form.kind == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+      <label class="field">شهر<input type="text" name="city" value="{{ form.city or '' }}" maxlength="60"></label>
+      <label class="field">تلفن<input type="text" name="phone" value="{{ form.phone or '' }}" inputmode="tel" maxlength="20"></label>
+      <label class="field">راه ارتباط معمول<select name="channel"><option value="">—</option>{% for k, v in SALES_CHANNELS.items() %}<option value="{{ k }}"{% if form.channel == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+      {% if c %}<label class="field">وضعیت<select name="active"><option value="1"{% if form.active|string in ('1', 'True') %} selected{% endif %}>فعال</option><option value="0"{% if form.active|string in ('0', 'False') %} selected{% endif %}>غیرفعال</option></select></label>{% endif %}
+      <label class="field wide">یادداشت<input type="text" name="note" value="{{ form.note or '' }}" maxlength="500"></label>
+      <div class="wide"><button class="btn">ذخیره</button></div>
+    </form>
+  </div></section>
+  {% if c %}
+  <section class="panel" style="margin-top:0"><header><h2>الگوی خرید</h2></header><div class="body">
+    {% if c.reorder %}<dl class="kv"><dt>فاصله معمول سفارش</dt><dd>{{ c.reorder.typical_days|fa }} روز</dd><dt>آخرین سفارش</dt><dd>{{ c.reorder.last|jdate }}</dd>
+      <dt>سفارش بعدی احتمالی</dt><dd>{{ c.reorder.due|jdate }} ({% if c.reorder.days_left < 0 %}{{ (-c.reorder.days_left)|fa }} روز گذشته{% else %}{{ c.reorder.days_left|fa }} روز مانده{% endif %})</dd></dl>
+    {% else %}<p class="muted">برای پیش‌بینی سفارش بعدی دست‌کم دو سفارش در دو تاریخ مختلف لازم است.</p>{% endif %}
+  </div></section>
+  {% endif %}
+</div>
+{% if c %}
+<section class="panel"><header><h2>استعلام‌ها</h2></header><div class="tbl-wrap"><table class="data"><tbody>
+  {% for i in c.inquiries %}<tr><td class="num"><a href="{{ url_for('sales_inquiry', inquiry_id=i.id) }}">{{ i.id|fa }}</a></td><td class="small">{{ i.created_at|jdate }}</td><td><span class="pn">{{ i.product_key }}</span></td><td class="num">{{ i.qty|money }}</td><td>{{ days_label(i.payment_days) }}</td><td>{{ status_tag(i.status) }}{% if i.status == 'lost' %}<span class="sub">{{ LOST_REASONS.get(i.lost_reason, '') }}</span>{% endif %}</td></tr>
+  {% else %}<tr class="empty-row"><td colspan="6">استعلامی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel"><header><h2>سفارش‌ها</h2></header><div class="tbl-wrap"><table class="data"><tbody>
+  {% for o in c.orders %}<tr><td class="small">{{ o.order_date|jdate }}</td><td>{% for l in o.lines %}<span class="pn">{{ l.product_key }}</span> × {{ l.qty|money }}{% if not loop.last %}، {% endif %}{% endfor %}</td><td>{{ days_label(o.payment_days) }}</td><td class="num">{{ o.total_rial|toman }} تومان</td><td class="small muted">{{ o.ref or '' }}</td></tr>
+  {% else %}<tr class="empty-row"><td colspan="5">سفارشی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endif %}
+{% endblock %}

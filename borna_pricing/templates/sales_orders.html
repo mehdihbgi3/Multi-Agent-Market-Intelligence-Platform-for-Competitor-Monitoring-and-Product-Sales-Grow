@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, days_label with context %}
+{% block title %}سفارش‌ها{% endblock %}
+{% block content %}
+<div class="page-title"><h1>سفارش‌ها</h1><a class="btn" href="{{ url_for('sales_order_new') }}">سفارش تازه</a></div>
+{{ subnav('sales_orders') }}
+<section class="panel" style="margin-top:0"><header><h2>ورود از Excel</h2></header><div class="body">
+  <p class="small">برای وارد کردن یک‌جای سفارش‌ها (مثلاً سوابق فاکتورها)، <a href="{{ url_for('sales_orders_template') }}">فایل نمونه</a> را بگیرید، پر کنید و بارگذاری کنید. پیش از ثبت، پیش‌نمایش و خطاها را می‌بینید.</p>
+  {% if can('approver') %}<form method="post" action="{{ url_for('sales_orders_import') }}" enctype="multipart/form-data" class="inline-form">{{ csrf() }}<input type="file" name="file" accept=".xlsx" required><button class="btn quiet">پیش‌نمایش</button></form>
+  {% else %}<p class="hint">بارگذاری فایل با تأییدکننده یا مدیر است.</p>{% endif %}
+</div></section>
+<section class="panel"><header><div class="table-tools"><input type="search" placeholder="جست‌وجو" data-filter-for="ord" aria-label="جست‌وجو"><span class="small muted"><span data-count-for="ord">{{ rows|length|fa }}</span> سفارش</span></div></header>
+  <div class="tbl-wrap"><table class="data" id="ord">
+    <thead><tr><th class="num">شماره</th><th>تاریخ</th><th>مشتری</th><th>کالاها</th><th>پرداخت</th><th class="num">جمع (تومان)</th><th>شماره فاکتور</th></tr></thead>
+    <tbody>{% for o in rows %}<tr><td class="num">{{ o.id|fa }}</td><td class="small">{{ o.order_date|jdate }}</td><td><a href="{{ url_for('sales_customer', customer_id=o.customer_id) }}">{{ o.customer_name }}</a></td>
+      <td>{% for l in o.lines %}<span class="pn">{{ l.product_key }}</span> × {{ l.qty|money }}{% if not loop.last %}، {% endif %}{% endfor %}</td><td>{{ days_label(o.payment_days) }}</td><td class="num">{{ o.total_rial|toman }}</td><td class="small">{{ o.ref or '—' }}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="7">هنوز سفارشی ثبت نشده است.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

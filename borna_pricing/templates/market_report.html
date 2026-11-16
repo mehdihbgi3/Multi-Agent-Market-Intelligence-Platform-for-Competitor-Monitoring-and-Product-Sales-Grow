@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_market.html" import subnav, toman, position, stale_note with context %}
+{% from "_mgmt.html" import gap_chart, side_summary %}
+{% block title %}گزارش بازار {{ rep.id }}{% endblock %}
+{% block content %}
+<div class="page-title"><h1>گزارش بازار شماره {{ rep.id|fa }}</h1><p>{{ data.period_start|jdt }} تا {{ data.period_end|jdt }} · <a href="{{ url_for('market_report_xlsx', report_id=rep.id) }}">دریافت Excel</a></p></div>
+{{ subnav('market_reports') }}
+{{ stale_note(changes, 'این گزارش') }}
+<section class="panel" style="margin-top:0"><header><h2>نکته‌های این هفته</h2>{% if data.fx_end %}<span class="small muted">دلار: {{ data.fx_start|money if data.fx_start else '—' }} ← {{ data.fx_end|money }} تومان{% if data.fx_change %} ({{ data.fx_change|dec|pct }}){% endif %}</span>{% endif %}</header>
+  <div class="body"><ul class="insights">{% for i in data.insights %}<li>{{ i.text }}</li>{% else %}<li class="muted">نکته‌ای نیست.</li>{% endfor %}</ul></div>
+</section>
+<section class="panel cmpz" aria-labelledby="rcmp-title"><header><h2 id="rcmp-title">قیمت هر عدد برنا در برابر رقبا: عمده با عمده، تکی با تکی</h2></header>
+  <div class="body">
+    <div class="msummary">{{ side_summary(summary.wholesale) }}{{ side_summary(summary.retail) }}</div>
+    <div class="cmp-charts">
+      {% for s in ('wholesale', 'retail') %}{% set ch = lane[s] %}
+      <div class="cmp-chart"><h3 class="msub">{{ ch.title }}</h3>{% if ch.rows %}{{ gap_chart(ch) }}{% else %}<div class="mempty"><p>{{ 'قیمت عمده رقبا برای مقایسه نبود.' if s == 'wholesale' else 'قیمت تکی رقبا برای مقایسه نبود.' }}</p></div>{% endif %}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% set rows = [] %}{% for r in data.rows %}{% if r.n or r.n_sub or r.n_sep %}{% set _ = rows.append(r) %}{% endif %}{% endfor %}
+<section class="panel"><header><h2>کالاهای دارای داده رقبا (تومان، هر عدد)</h2><span class="small muted">{{ (data.rows|length - rows|length)|fa }} کالا هنوز قیمت تأییدشده رقیب ندارد؛ فهرست کامل در فایل Excel است.</span></header>
+  <div class="tbl-wrap"><table class="data grouped"><thead>
+    <tr><th rowspan="2">کد</th><th rowspan="2">کالا</th><th rowspan="2" class="num">قیمت هر عدد برنا (لیست رسمی)</th><th colspan="3" class="grp">عمده با عمده</th><th colspan="3" class="grp">تکی با تکی</th><th rowspan="2" class="num">آگهی</th><th rowspan="2" class="num">ناموجود</th><th rowspan="2">ارزان‌ترین</th></tr>
+    <tr><th class="num grp-start">میانه هر عدد رقبا</th><th>فاصله</th><th>تغییر رقبا در هفته</th><th class="num grp-start">میانه تکی رقبا</th><th>فاصله</th><th>تغییر رقبا در هفته</th></tr>
+  </thead><tbody>
+  {% for r in rows %}<tr><td><a class="pn" href="{{ url_for('market_product', key=r.key) }}">{{ r.key }}</a></td><td>{{ r.name }}</td>
+    <td class="num strong">{{ toman(r.official) }}</td>
+    {% for s in ('wholesale', 'retail') %}{% set x = r.cmp[s] %}
+    <td class="num grp-start">{{ toman(x.median) }}{% if x.n_priced %}<span class="sub">{{ x.n_priced|fa }} قیمت</span>{% endif %}</td>
+    <td>{{ position(x.gap) }}{% if x.low_data %}<span class="sub">کم‌داده</span>{% endif %}</td>
+    <td>{{ x.change|pctx if x.change is not none else '—' }}</td>
+    {% endfor %}
+    <td class="num">{{ r.n|fa }}{% if r.n_sub %}<span class="sub">+{{ r.n_sub|fa }} جایگزین</span>{% endif %}{% if r.n_sep %}<span class="sub">+{{ r.n_sep|fa }} {{ data.separate_label or 'اصلی' }}</span>{% endif %}</td><td class="num">{{ r.oos|fa }}</td>
+    <td>{% for s in ('wholesale', 'retail') %}{% set ch = r.cheapest_side[s] %}{% if ch %}<div class="cheap-line"><span class="muted">{{ LEVEL_LABELS[s] }}:</span> {{ ch.seller }} <span class="num">{{ ch.price|toman }}</span><span class="sub">{{ TIER_LABELS[ch.tier] }}{% if ch.relation == 'substitute' %}، جایگزین{% endif %}</span></div>{% endif %}{% endfor %}{% if not r.cheapest %}—{% endif %}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+</section>
+{% set found = (data.discovery or {}).get('new') or [] %}
+{% if found %}
+<section class="panel"><header><h2>کشف بازار: کسب‌وکارهای تازه این هفته</h2><span class="small muted">{{ (data.discovery.n_new or found|length)|fa }} مورد؛ فهرست کامل و پیگیری در «فروش ← کسب‌وکارها و مشتریان احتمالی».</span></header>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th>نام</th><th>نوع</th><th>شهر</th><th>تلفن</th><th>منبع</th><th>لینک</th></tr></thead><tbody>
+  {% for b in found %}<tr><td>{{ b.name }}{% if b.address %}<span class="sub">{{ b.address }}</span>{% endif %}</td><td class="small">{{ LEAD_KINDS[b.kind] if b.kind in LEAD_KINDS else b.kind }}</td><td class="small">{{ b.city or '—' }}</td><td class="small"><span dir="ltr">{{ b.phone|fa if b.phone else '—' }}</span></td><td class="small">{{ b.sources|join('، ') }}</td><td class="small">{% if b.example_url %}<a href="{{ b.example_url }}" rel="noopener noreferrer nofollow" target="_blank">{{ link_label(b.example_url) }}</a>{% else %}—{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}

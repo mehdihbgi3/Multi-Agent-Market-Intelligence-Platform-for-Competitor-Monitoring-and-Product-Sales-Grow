@@ -1,0 +1,28 @@
+{% macro subnav(active) -%}
+{% set items = [
+  ('sales_dashboard', 'داشبورد فروش', 'viewer'),
+  ('sales_inquiries', 'استعلام‌ها', 'viewer'),
+  ('sales_customers', 'مشتری‌ها', 'viewer'),
+  ('sales_orders', 'سفارش‌ها', 'viewer'),
+  ('sales_credit', 'فروش چکی', 'viewer'),
+  ('sales_reply', 'جواب مشتری', 'viewer'),
+  ('sales_leads', 'مشتریان احتمالی', 'viewer'),
+  ('sales_advisor', 'مشاور قیمت', 'approver'),
+] %}
+<nav class="subnav" aria-label="بخش‌های فروش">
+  {% for ep, label, r in items if can(r) %}<a href="{{ url_for(ep) }}"{% if active == ep %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+{%- endmacro %}
+
+{% macro status_tag(s) -%}
+<span class="tag {{ {'open': 'warn', 'won': 'good', 'lost': 'muted'}.get(s, 'muted') }}">{{ INQUIRY_STATUS.get(s, s) }}</span>
+{%- endmacro %}
+
+{% macro days_label(d) -%}{% if d %}چک {{ d|fa }} روزه{% else %}نقد{% endif %}{%- endmacro %}
+
+{% macro customer_fields(form, prefix='customer_') -%}
+<label class="field">مشتری ثبت‌شده<select name="customer_id"><option value="">— مشتری تازه —</option>{% for c in customers %}<option value="{{ c.id }}"{% if form.customer_id|string == c.id|string %} selected{% endif %}>{{ c.name }}{% if c.city %} ({{ c.city }}){% endif %}</option>{% endfor %}</select></label>
+<label class="field">یا نام مشتری تازه<input type="text" name="customer_name" value="{{ form.customer_name or '' }}" maxlength="120"></label>
+<label class="field">نوع مشتری تازه<select name="customer_kind">{% for k, v in CUSTOMER_KINDS.items() %}<option value="{{ k }}"{% if form.customer_kind == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+<label class="field">شهر مشتری تازه<input type="text" name="customer_city" value="{{ form.customer_city or '' }}" maxlength="60"></label>
+{%- endmacro %}

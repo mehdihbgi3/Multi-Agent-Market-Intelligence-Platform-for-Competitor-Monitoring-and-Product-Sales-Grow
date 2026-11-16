@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}بارگذاری صفحه ذخیره‌شده{% endblock %}
+{% block content %}
+<div class="page-title"><h1>بارگذاری صفحه ذخیره‌شده</h1><p>وقتی سایتی خواندن خودکار را بسته است، صفحه را خودتان در مرورگر باز و ذخیره کنید. سامانه با همان روش کاشف بازار قیمت‌ها، فروشنده‌ها و تعمیرگاه‌ها را از آن درمی‌آورد.</p></div>
+{{ subnav('market_upload') }}
+<div class="cols">
+  <section class="panel" style="margin-top:0">
+    <header><h2>فایل صفحه</h2></header>
+    <div class="body">
+      <form method="post" enctype="multipart/form-data">{{ csrf() }}
+        <label class="field">سایت<select name="site">{% for k, v in choices.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+        <label class="field">فایل صفحه (HTML یا MHTML، تا {{ max_mb|fa }} مگابایت)<input type="file" name="file" accept=".html,.htm,.mhtml,.mht,.txt" required></label>
+        <label class="field">نشانی صفحه (اختیاری)<input type="url" name="url" dir="ltr" placeholder="https://torob.com/p/..."></label>
+        <div class="actions"><button class="btn">بارگذاری و خواندن</button></div>
+      </form>
+    </div>
+  </section>
+  <section class="panel" style="margin-top:0">
+    <header><h2>راهنما</h2></header>
+    <div class="body small">
+      <ol>
+        <li>صفحه جست‌وجو یا صفحه کالا را در Edge یا Chrome باز کنید و صبر کنید کامل باز شود. در باسلام و دیجی‌کالا کمی پایین بروید تا کالاهای بیشتری بیاید.</li>
+        <li>Ctrl+S را بزنید و نوع فایل را «Webpage, Complete» یا «Webpage, Single File» بگذارید. «HTML Only» برای دیجی‌کالا و باسلام کالایی ندارد.</li>
+        <li>فایل را اینجا بارگذاری کنید. سایت و نوع صفحه از روی خود فایل تشخیص داده می‌شود؛ اگر نشد، سایت را انتخاب کنید یا نشانی صفحه را بنویسید.</li>
+      </ol>
+      <p>ترب و دیجی‌کالا: صفحه جست‌وجو فقط کالاهای تک‌فروشنده را می‌دهد. برای قیمت همه فروشنده‌های یک کالا، صفحه همان کالا را بارگذاری کنید. دیوار: صفحه «قطعات یدکی و لوازم جانبی خودرو» قیمت می‌دهد و صفحه «خدمات موتور و ماشین» تعمیرگاه.</p>
+      <p>{% if can('approver') %}قیمت‌هایی که شما بارگذاری می‌کنید مستقیم معتبر می‌شوند، مگر قرنطینه شوند.{% else %}قیمت‌هایی که شما بارگذاری می‌کنید تا تأیید مدیر مالی «در انتظار تأیید» می‌مانند.{% endif %} فایل به‌عنوان مدرک در صفحه منبع همان سایت نگه داشته می‌شود.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

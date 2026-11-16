@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, customer_fields with context %}
+{% block title %}استعلام تازه{% endblock %}
+{% block content %}
+<div class="page-title"><h1>استعلام تازه</h1><p>هر کالای یک درخواست مشتری یک استعلام است.</p></div>
+{{ subnav('sales_inquiries') }}
+<section class="panel" style="margin-top:0"><div class="body">
+  <form method="post" class="form-grid">{{ csrf() }}
+    {{ customer_fields(form) }}
+    <label class="field">کالا *<select name="product_key" required><option value="">انتخاب کالا</option>{% for p in products %}<option value="{{ p.key }}"{% if form.product_key == p.key %} selected{% endif %}>{{ p.key }} — {{ p.name }}{% if official.get(p.key) %} ({{ official[p.key]|toman }} تومان){% endif %}</option>{% endfor %}</select></label>
+    <label class="field">تعداد *<input type="text" name="qty" value="{{ form.qty or '' }}" inputmode="numeric" required></label>
+    <label class="field">قیمت واحد پیشنهادی (خالی = لیست رسمی)<input type="text" name="quoted_price" value="{{ form.quoted_price or '' }}" inputmode="numeric"></label>
+    <label class="field">واحد قیمت<select name="unit"><option value="rial"{% if form.unit != 'toman' %} selected{% endif %}>ریال</option><option value="toman"{% if form.unit == 'toman' %} selected{% endif %}>تومان</option></select></label>
+    <label class="field">مهلت پرداخت (روز؛ ۰ = نقد)<input type="text" name="payment_days" value="{{ form.payment_days or '0' }}" inputmode="numeric"></label>
+    <label class="field">راه ارتباط<select name="channel">{% for k, v in SALES_CHANNELS.items() %}<option value="{{ k }}"{% if (form.channel or 'phone') == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field">تاریخ پیگیری (خالی = دو روز دیگر)<input type="text" name="follow_up_on" value="{{ form.follow_up_on or '' }}" placeholder="۱۴۰۵/۰۸/۱۲"></label>
+    <label class="field wide">توضیح<textarea name="note" maxlength="1000">{{ form.note or '' }}</textarea></label>
+    <div class="wide"><button class="btn">ثبت استعلام</button></div>
+  </form>
+</div></section>
+{% endblock %}

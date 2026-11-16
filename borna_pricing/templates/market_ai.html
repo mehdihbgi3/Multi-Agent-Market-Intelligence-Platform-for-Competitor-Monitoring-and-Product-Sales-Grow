@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}هوش مصنوعی{% endblock %}
+{% block content %}
+<div class="page-title"><h1>مدل زبانی</h1><form method="post">{{ csrf() }}<button class="btn quiet"{% if not ready %} disabled{% endif %}>آزمون اتصال</button></form></div>
+{{ subnav('market_ai') }}
+<div class="cols">
+<section class="panel" style="margin-top:0"><header><h2>وضعیت</h2></header><div class="body">
+  <dl class="kv">
+    <dt>وضعیت</dt><dd>{% if ready %}{{ tag('good', 'آماده') }}{% elif llm.enabled %}{{ tag('crit', 'روشن ولی تنظیم ناقص') }}{% else %}{{ tag('muted', 'خاموش') }}{% endif %}</dd>
+    <dt>سرور</dt><dd><span class="pn">{{ llm.base_url or '—' }}</span></dd>
+    <dt>مدل</dt><dd><span class="pn">{{ llm.model or '—' }}</span></dd>
+    <dt>درخواست امروز</dt><dd>{{ today|fa }} از {{ llm.daily_call_limit|fa }}</dd>
+  </dl>
+  <p class="hint">تنظیمات در settings.ini بخش [llm] است. هر سروری که API سازگار با OpenAI دارد کار می‌کند، از جمله مدل متن‌باز روی سرور خودتان (مثلاً با Ollama یا vLLM). وقتی مدل خاموش است، همه بخش‌ها با قاعده کار می‌کنند. شماره تلفن و ایمیل پیش از ارسال حذف می‌شود و هیچ خروجی مدلی بدون تأیید انسان ثبت یا منتشر نمی‌شود.</p>
+</div></section>
+<section class="panel" style="margin-top:0"><header><h2>مصرف هفت روز اخیر</h2></header><div class="tbl-wrap"><table class="data"><thead><tr><th>کار</th><th>وضعیت</th><th class="num">تعداد</th><th class="num">نویسه ورودی</th><th class="num">میانگین زمان (میلی‌ثانیه)</th></tr></thead><tbody>
+  {% for u in usage %}<tr><td>{{ u.task }}</td><td>{{ u.status }}</td><td class="num">{{ u.n|fa }}</td><td class="num">{{ (u.chars_in or 0)|money }}</td><td class="num">{{ (u.avg_ms or 0)|round|int|money }}</td></tr>
+  {% else %}<tr class="empty-row"><td colspan="5">درخواستی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
+<section class="panel"><header><h2>درخواست‌های اخیر</h2></header><div class="tbl-wrap"><table class="data"><thead><tr><th>زمان</th><th>کار</th><th>نسخه دستور</th><th>وضعیت</th><th class="num">زمان</th><th>خطا</th></tr></thead><tbody>
+  {% for r in recent %}<tr><td class="small">{{ r.at|jdt }}</td><td>{{ r.task }}</td><td class="small"><span class="pn">{{ r.prompt_version }}</span></td><td>{{ tag({'ok':'good','error':'crit','blocked':'warn'}[r.status], r.status) }}</td><td class="num">{{ (r.ms or 0)|money }}</td><td class="small">{{ r.error or '' }}</td></tr>
+  {% else %}<tr class="empty-row"><td colspan="6">درخواستی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

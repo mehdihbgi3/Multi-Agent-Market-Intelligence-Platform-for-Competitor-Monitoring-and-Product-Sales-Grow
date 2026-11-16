@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% from "_mgmt.html" import href, legend, gap_text, div_row, hbar, empty, tile, gap_chart, side_summary %}
+{% block title %}داشبورد مدیریت{% endblock %}
+{% block content %}
+{% set m = d.market %}
+<div class="mgmt cmpz">
+<div class="page-title mhead">
+  <div><h1>داشبورد مدیریت</h1><p>قیمت، فروش و بازار در یک نگاه؛ روی هر عدد بزنید تا جزئیاتش باز شود. به‌روز در {{ d.now|jdt }}.</p></div>
+  <div class="mgmt-tools no-print">
+    <div class="seg" aria-label="بازه زمانی">{% for p in d.periods %}<a href="{{ url_for('management', days=p) }}"{% if d.days == p %} aria-current="true"{% endif %}>{{ p|fa }} روز</a>{% endfor %}</div>
+    <button class="btn quiet" type="button" data-print>چاپ</button>
+  </div>
+</div>
+
+<section class="mgmt-kpis" aria-label="شاخص‌های اصلی">
+  {% for k in d.kpis %}{{ tile(k) }}{% endfor %}
+</section>
+
+<section class="panel" aria-labelledby="kinds-title">
+  <header><h2 id="kinds-title">کسب‌وکارها</h2><span class="small muted">روی هر نوع بزنید تا فهرست همان نوع در «مشتریان احتمالی» باز شود.</span></header>
+  <div class="body">
+    <div class="mkinds">
+      {% for k in d.leads.kinds %}
+      <a class="mkind" href="{{ url_for('sales_leads', kind=k.kind) }}" style="--k:{{ k.color }}">
+        <span class="t"><i class="sw dot" style="background:{{ k.color }}"></i>{{ k.label }}</span>
+        <span class="n">{{ k.n|money }}</span>
+        <span class="meta">{{ k.phone|money }} با تلفن؛ {{ k.new|money }} تازه در ۷ روز</span>
+        <span class="mbar" aria-hidden="true"><i style="width:{{ '%.1f'|format((k.phone / k.n * 100) if k.n else 0) }}%"></i></span>
+        <span class="go">دیدن فهرست</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="mgrid2">
+  <section class="panel" aria-labelledby="todo-title">
+    <header><h2 id="todo-title">منتظر تصمیم شما</h2></header>
+    <div class="body">
+      {% if d.decisions %}
+      <ul class="mtodo">{% for x in d.decisions %}<li class="{{ x.tone }}"><span class="mark" aria-hidden="true"></span><span class="txt">{{ x.text }}</span><a class="btn small quiet" href="{{ url_for(x.endpoint, **x.args) }}">باز کردن</a></li>{% endfor %}</ul>
+      {% else %}{{ empty('کاری منتظر تصمیم شما نیست.') }}{% endif %}
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="quick-title">
+    <header><h2 id="quick-title">دسترسی سریع</h2></header>
+    <div class="body"><div class="mquick">{% for q in d.quick %}<a class="mq" href="{{ url_for(q.endpoint, **q.args) }}">{{ q.label }}</a>{% endfor %}</div></div>
+  </section>
+</div>
+
+<section class="panel manalysis" id="analysis" aria-labelledby="an-title">
+  <header><h2 id="an-title">قیمت هر عدد برنا در برابر رقبا: عمده با عمده، تکی با تکی</h2>
+    <span class="small muted">میانه قیمت‌های تأییدشده رقبای هم‌طرح در {{ m.stale_days|fa }} روز اخیر{% if m.sep_label %}؛ «{{ m.sep_label }}» جدا حساب شده{% endif %}.</span></header>
+  <div class="body">
+    {% if m.has_market %}
+    {% if d.insights %}<ul class="minsights">{% for t in d.insights %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+    <p class="small muted cmp-lead">قیمت برنا همان قیمت هر عدد در لیست رسمی است (قیمت یک عدد؛ حداقل سفارش ۱۰۰ عدد). «عمده با عمده» آن را با میانه قیمت هر عدد عمده‌فروش‌ها می‌سنجد و «تکی با تکی» با میانه قیمت تکی فروشنده‌ها. قیمت بسته‌های چندتایی رقبا بر تعداد بسته تقسیم شده و بسته ۱۰ عددی و بیشتر عمده حساب می‌شود. آگهی با سطح نامشخص تکی است. در نمودارها نوار خاکستری کنار خط صفر محدوده «هم‌قیمت» (کمتر از ۲٪ فاصله) است.</p>
+    <h3 class="msub">چند کالا ارزان‌تر، هم‌قیمت یا گران‌تر است؟</h3>
+    <div class="msummary">
+      {{ side_summary(m.summary.wholesale) }}{{ side_summary(m.summary.retail) }}
+      <div class="mlegend">{% for part in m.summary.wholesale.parts %}<span><i class="sw sq seg-{{ part.key }}"></i>{{ part.label }}</span>{% endfor %}<span class="muted">هم‌قیمت یعنی کمتر از ۲٪ فاصله</span></div>
+    </div>
+    <div class="cmp-charts">
+      {% for s in ('wholesale', 'retail') %}{% set ch = m.lanes[s] %}{% set sm = m.summary[s] %}
+      <div class="cmp-chart">
+        <h3 class="msub">{{ ch.title }}: {{ 'قیمت هر عدد برنا (لیست رسمی) در برابر میانه قیمت هر عدد عمده‌فروش‌ها' if s == 'wholesale' else 'قیمت هر عدد برنا (لیست رسمی) در برابر میانه قیمت تکی رقبا' }}</h3>
+        {% if ch.rows %}{{ gap_chart(ch) }}{% else %}{{ empty('هنوز قیمت عمده تأییدشده‌ای از رقبا نیست. قیمت عمده را از «ثبت قیمت رقیب» با سطح «عمده» یا از «خواندن لیست قیمت» وارد کنید.' if s == 'wholesale' else 'هنوز قیمت تکی تأییدشده‌ای از رقبا نیست.') }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <details class="mtable" open>
+      <summary>جدول قیمت‌ها (تومان، هر عدد)</summary>
+      <div class="tbl-wrap"><table class="data grouped">
+        <thead>
+          <tr><th rowspan="2">کد</th><th rowspan="2">کالا</th><th rowspan="2" class="num">قیمت هر عدد برنا (لیست رسمی)</th><th colspan="2" class="grp">عمده با عمده</th><th colspan="2" class="grp">تکی با تکی</th><th rowspan="2">ارزان‌ترین فروشنده</th></tr>
+          <tr><th class="num grp-start">میانه هر عدد رقبا</th><th>فاصله</th><th class="num grp-start">میانه تکی رقبا</th><th>فاصله</th></tr>
+        </thead>
+        <tbody>{% for r in m.rows if r.official and r.n %}<tr>
+          <td><a class="pn" href="{{ url_for('market_product', key=r.key) }}">{{ r.key }}</a></td>
+          <td class="small">{{ r.name }}</td>
+          <td class="num strong">{{ r.official|toman }}</td>
+          <td class="num grp-start">{{ r.w_median|toman if r.w_median else '—' }}{% if r.w_n %}<span class="sub">{{ r.w_n|fa }} قیمت</span>{% endif %}</td>
+          <td>{{ gap_text(r.gap_w) }}</td>
+          <td class="num grp-start">{{ r.r_median|toman if r.r_median else '—' }}{% if r.r_n %}<span class="sub">{{ r.r_n|fa }} قیمت</span>{% endif %}</td>
+          <td>{{ gap_text(r.gap_r) }}</td>
+          <td class="small">{% for s in ('wholesale', 'retail') %}{% set ch = r.cheapest_side[s] %}{% if ch %}<div class="cheap-line"><span class="muted">{{ ch.level }}:</span> {{ ch.seller }} <span class="num">{{ ch.price|toman }}</span></div>{% endif %}{% endfor %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </details>
+    {% else %}
+    {{ empty('هنوز قیمت تأییدشده‌ای از رقبا برای مقایسه نیست. وقتی کاشف بازار قیمت پیدا کند و تطبیق‌ها تأیید شوند، این بخش پر می‌شود.', url_for('market_review'), 'تأیید تطبیق‌ها') }}
+    {% endif %}
+  </div>
+</section>
+
+<div class="mgrid2">
+  <section class="panel" aria-labelledby="brands-title">
+    <header><h2 id="brands-title">برنا در برابر برندها و اصالت</h2><span class="small muted">قیمت هر عدد برنا در برابر قیمت هر عدد رقبا؛ چپ و آبی: برنا ارزان‌تر، راست و قرمز: برنا گران‌تر</span></header>
+    <div class="body">{% if m.brands %}<div class="dlist">{% for b in m.brands %}{{ div_row(b.label, b.gap, b.w, b.n|fa ~ ' قیمت از ' ~ b.sellers|fa ~ ' فروشنده', b.beyond) }}{% endfor %}</div>{% else %}{{ empty('هنوز داده‌ای نیست.') }}{% endif %}</div>
+  </section>
+  <section class="panel" aria-labelledby="sites-title">
+    <header><h2 id="sites-title">برنا در برابر هر سایت و منبع</h2><span class="small muted">قیمت هر عدد برنا در برابر قیمت هر عدد رقبا؛ چپ و آبی: برنا ارزان‌تر، راست و قرمز: برنا گران‌تر</span></header>
+    <div class="body">{% if m.sites %}<div class="dlist">{% for b in m.sites %}{{ div_row(b.label, b.gap, b.w, b.n|fa ~ ' قیمت از ' ~ b.sellers|fa ~ ' فروشنده', b.beyond) }}{% endfor %}</div>{% else %}{{ empty('هنوز داده‌ای نیست.') }}{% endif %}</div>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="sellers-title">
+  <header><h2 id="sellers-title">رقبای اصلی (فروشنده‌ها)</h2><span class="small muted">پرکالاترین فروشنده‌ها، قیمت هر عدد در برابر قیمت هر عدد برنا؛ روی نام بزنید تا در «مشتریان احتمالی» پیدا شود.</span></header>
+  <div class="body">{% if m.sellers %}<div class="dlist">{% for s in m.sellers %}{{ div_row(s.label, s.gap, s.w, s.products|fa ~ ' کالا · در ' ~ s.cheaper|fa ~ ' کالا ارزان‌تر از برنا', s.beyond, url_for('sales_leads', q=s.label), s.label ~ ': ' ~ s.product_keys|join('، ')) }}{% endfor %}</div>{% else %}{{ empty('هنوز داده‌ای نیست.') }}{% endif %}</div>
+</section>
+
+<section class="panel" aria-labelledby="alerts-title">
+  <header><h2 id="alerts-title">هشدارها و فرصت‌ها</h2></header>
+  <div class="body malerts">
+    <div>
+      <h3 class="msub">رقیبانی که قیمت را تند پایین آوردند (۳۰ روز)</h3>
+      {% if d.drops %}<ul class="mplain">{% for x in d.drops %}<li><b>{{ x.seller }}</b> <span class="pn">{{ x.key }}</span>: {{ x.before|toman }} ← {{ x.after|toman }} تومان <span class="gtxt cheap">{{ x.change|pct(1) }}</span><span class="sub">{{ x.source }}</span></li>{% endfor %}</ul>{% else %}<p class="muted small">افت بیش از ۱۰٪ دیده نشد.</p>{% endif %}
+    </div>
+    <div>
+      <h3 class="msub">کالاهایی که برنا از همه گران‌تر است</h3>
+      {% if m.priciest %}<ul class="mplain">{% for r in m.priciest %}<li><a class="pn" href="{{ url_for('market_product', key=r.key) }}">{{ r.key }}</a> ({{ r.side }}): برنا {{ r.borna|toman }}، گران‌ترین رقیب {{ r.other|toman }} تومان</li>{% endfor %}</ul>{% else %}<p class="muted small">کالایی نیست.</p>{% endif %}
+    </div>
+    <div>
+      <h3 class="msub">کالاهایی که برنا از همه ارزان‌تر است</h3>
+      {% if m.cheapest_all %}<ul class="mplain">{% for r in m.cheapest_all %}<li><a class="pn" href="{{ url_for('market_product', key=r.key) }}">{{ r.key }}</a> ({{ r.side }}): برنا {{ r.borna|toman }}، ارزان‌ترین رقیب {{ r.other|toman }} تومان</li>{% endfor %}</ul>{% else %}<p class="muted small">کالایی نیست.</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="trend-title">
+  <header><h2 id="trend-title">روند قیمت هر عدد برنا و رقبا در {{ d.days|fa }} روز (تومان)</h2></header>
+  <div class="body">
+    {% if d.trends %}<div class="mtrends">{% for t in d.trends %}<div class="mtrend">
+      <div class="ttl"><a class="pn" href="{{ url_for('market_product', key=t.key) }}">{{ t.key }}</a><span class="nm" title="{{ t.name }}">{{ t.name }}</span></div>
+      {% for ln in t.lanes %}<div class="mlane">
+        <div class="mlane-head"><span class="mlane-title">{{ ln.title }}</span>{% if ln.chart %}{{ legend(ln.legend, 'line') }}{% endif %}</div>
+        {% if ln.chart %}<div class="mchart wide-only">{{ ln.chart.svg }}<script type="application/json">{{ ln.chart.data }}</script></div><div class="mchart narrow-only">{{ ln.chart_n.svg }}<script type="application/json">{{ ln.chart_n.data }}</script></div>
+        {% else %}<p class="muted small">قیمت {{ 'عمده' if ln.side == 'wholesale' else 'تکی' }} رقیب در این بازه نیست.</p>{% endif %}
+      </div>{% endfor %}
+    </div>{% endfor %}</div>
+    <p class="small muted">چهار کالایی که بیشترین قیمت رقیب را دارند، هر کدام با دو نمودار: عمده با عمده و تکی با تکی. نشانگر را روی نمودار ببرید تا عدد هر خط را ببینید.</p>
+    {% else %}{{ empty('هنوز روندی برای نمایش نیست.') }}{% endif %}
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="fx-title">
+  <header><h2 id="fx-title">دلار آزاد و نرخ لیست رسمی برنا (تومان)</h2>{{ legend(d.fx_legend, 'line') }}</header>
+  <div class="body">
+    {% if d.fx.chart %}<div class="mchart wide-only">{{ d.fx.chart.svg }}<script type="application/json">{{ d.fx.chart.data }}</script></div><div class="mchart narrow-only">{{ d.fx.chart_n.svg }}<script type="application/json">{{ d.fx.chart_n.data }}</script></div>
+    <p class="small muted">{{ d.fx.n_rates|fa }} نرخ پذیرفته‌شده در {{ d.days|fa }} روز. پله‌های خط تیره انتشار لیست تازه‌اند؛ هرچه دو خط نزدیک‌تر، قیمت برنا با دلار هماهنگ‌تر. جدول کامل در <a href="{{ url_for('rates') }}">تاریخچه نرخ</a>.</p>
+    {% else %}{{ empty('در این بازه نرخی پذیرفته نشده است.') }}{% endif %}
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="sales-title">
+  <header><h2 id="sales-title">فروش ماهانه (میلیون تومان)</h2>{{ legend([{'name': 'نقد', 'color': '#2a78d6'}, {'name': 'چکی', 'color': '#eb6834'}], 'sq') }}</header>
+  <div class="body">
+    {% if d.sales.has_months %}
+    <div class="mcols" role="img" aria-label="فروش ماهانه در ۱۲ ماه گذشته">
+      {% for x in d.sales.months %}<div class="mcol" title="{{ x.label }} {{ x.year|fa }}: نقد {{ x.cash|toman }}، چکی {{ x.credit|toman }} تومان">
+        <div class="area"><span class="cap">{{ ((x.total / 10 / 1000000)|round|int)|money if x.total >= 10000000 else ('کمتر از ۱' if x.total else '') }}</span><div class="stack">{% if x.cash %}<i class="c1" style="height:{{ '%.1f'|format(x.h_cash) }}px"></i>{% endif %}{% if x.credit %}<i class="c2" style="height:{{ '%.1f'|format(x.h_credit) }}px"></i>{% endif %}</div></div>
+        <span class="mlab">{{ x.label }}</span>
+      </div>{% endfor %}
+    </div>
+    <p class="small muted">۱۲ ماه شمسی اخیر. نشانگر را روی هر ستون ببرید تا مبلغ نقد و چکی را ببینید.</p>
+    {% else %}{{ empty('هنوز سفارشی ثبت نشده است. سفارش‌ها را در «فروش ← سفارش‌ها» ثبت یا از Excel وارد کنید تا این نمودار پر شود.', url_for('sales_orders'), 'سفارش‌ها') }}{% endif %}
+  </div>
+</section>
+
+<div class="mgrid2">
+  <section class="panel" aria-labelledby="lost-title">
+    <header><h2 id="lost-title">چرا نخریدند؟ ({{ d.days|fa }} روز)</h2></header>
+    <div class="body">{% if d.reasons %}<div class="hlist">{% for x in d.reasons %}{{ hbar(x.label, x.w, x.n|fa ~ ' استعلام', none, ((x.n / d.lost * 100)|round|int)|fa ~ '٪' if d.lost else none) }}{% endfor %}</div>{% else %}{{ empty('در این بازه استعلام ازدست‌رفته‌ای ثبت نشده است.') }}{% endif %}</div>
+  </section>
+  <section class="panel" aria-labelledby="city-title">
+    <header><h2 id="city-title">فروش به تفکیک شهر ({{ d.days|fa }} روز)</h2></header>
+    <div class="body">{% if d.sales.cities %}<div class="hlist">{% for x in d.sales.cities %}{{ hbar(x.label, x.w, x.text, none, x.customers|fa ~ ' مشتری') }}{% endfor %}</div>{% else %}{{ empty('در این بازه فروشی ثبت نشده است.') }}{% endif %}</div>
+  </section>
+</div>
+
+<div class="mgrid2">
+  <section class="panel" aria-labelledby="margin-title">
+    <header><h2 id="margin-title">حاشیه سود با قیمت رسمی و دلار امروز</h2></header>
+    <div class="body">{% if d.margins %}<div class="hlist">{% for x in d.margins %}{{ hbar(x.key, x.w, x.margin|pct(1), none, x.note, url_for('market_product', key=x.key)) }}{% endfor %}</div>
+      <p class="small muted">بهای تمام‌شده دلاری ضرب در دلار امروز، در برابر قیمت رسمی برنا.</p>
+    {% else %}{{ empty('بهای تمام‌شده هیچ کالایی ثبت نشده است. آن را در «فروش ← مشاور قیمت» وارد کنید.', url_for('sales_advisor'), 'مشاور قیمت') }}{% endif %}</div>
+  </section>
+  <section class="panel" aria-labelledby="lcity-title">
+    <header><h2 id="lcity-title">کسب‌وکارها به تفکیک شهر</h2>{{ legend(d.leads.legend, 'sq') }}</header>
+    <div class="body">{% if d.leads.cities %}<div class="hlist">{% for x in d.leads.cities %}
+      <div class="hrow"><div class="hlab"><a href="{{ url_for('sales_leads', city=x.label) }}">{{ x.label }}</a></div>
+        <div class="htrack stacked" aria-hidden="true">{% for p in x.parts %}<span class="hseg" style="width:{{ '%.2f'|format(p.w) }}%;background:{{ p.color }}" title="{{ p.label }}: {{ p.n|fa }}"></span>{% endfor %}</div>
+        <div class="hval">{{ x.total|money }}</div></div>{% endfor %}</div>
+    {% else %}{{ empty('هنوز شهر هیچ کسب‌وکاری معلوم نیست.') }}{% endif %}</div>
+  </section>
+</div>
+
+<p class="mfoot small muted">داده بازار: آخرین اجرای کاشف بازار {{ d.health.scout.started_at|jdt if d.health.scout else '—' }}، پایشگر قیمت {{ d.health.watcher.started_at|jdt if d.health.watcher else '—' }}؛ {{ d.health.broken|fa }} منبع ناسالم. قیمت‌ها به تومان است، مگر جایی که گفته شده.</p>
+</div>
+{% endblock %}

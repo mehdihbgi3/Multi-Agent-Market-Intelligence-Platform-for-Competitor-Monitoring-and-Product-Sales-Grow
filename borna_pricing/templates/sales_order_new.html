@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, customer_fields with context %}
+{% block title %}سفارش تازه{% endblock %}
+{% block content %}
+<div class="page-title"><h1>سفارش تازه</h1><p>قیمت واحد خالی یعنی قیمت لیست رسمی امروز.</p></div>
+{{ subnav('sales_orders') }}
+<section class="panel" style="margin-top:0"><div class="body">
+  <form method="post" class="form-grid">{{ csrf() }}
+    {{ customer_fields(form) }}
+    <label class="field">تاریخ (خالی = امروز)<input type="text" name="order_date" value="{{ form.order_date or '' }}" placeholder="۱۴۰۵/۰۸/۱۰"></label>
+    <label class="field">مهلت پرداخت (روز؛ ۰ = نقد)<input type="text" name="payment_days" value="{{ form.payment_days or '0' }}" inputmode="numeric"></label>
+    <label class="field">راه ارتباط<select name="channel">{% for k, v in SALES_CHANNELS.items() %}<option value="{{ k }}"{% if (form.channel or 'phone') == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label class="field">شماره فاکتور<input type="text" name="ref" value="{{ form.ref or '' }}" maxlength="60"></label>
+    <label class="field">واحد قیمت‌ها<select name="unit"><option value="rial">ریال</option><option value="toman"{% if form.unit == 'toman' %} selected{% endif %}>تومان</option></select></label>
+    {% for n in range(1, 7) %}
+    <label class="field">کالای ردیف {{ n|fa }}<select name="product_{{ n }}"><option value="">—</option>{% for p in products %}<option value="{{ p.key }}"{% if form['product_' ~ n] == p.key %} selected{% endif %}>{{ p.key }} — {{ p.name }}</option>{% endfor %}</select></label>
+    <label class="field">تعداد<input type="text" name="qty_{{ n }}" value="{{ form['qty_' ~ n] or '' }}" inputmode="numeric"></label>
+    <label class="field">قیمت واحد<input type="text" name="price_{{ n }}" value="{{ form['price_' ~ n] or '' }}" inputmode="numeric"></label>
+    {% endfor %}
+    <label class="field wide">توضیح<input type="text" name="note" value="{{ form.note or '' }}" maxlength="500"></label>
+    <div class="wide"><button class="btn">ثبت سفارش</button></div>
+  </form>
+</div></section>
+{% endblock %}

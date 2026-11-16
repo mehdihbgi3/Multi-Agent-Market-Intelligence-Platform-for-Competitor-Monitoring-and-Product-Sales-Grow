@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}فروش{% endblock %}
+{% block content %}
+<div class="page-title"><h1>داشبورد فروش</h1>
+  <div class="seg">{% for d in (30, 90, 180, 365) %}<a href="{{ url_for('sales_dashboard', days=d) }}"{% if days == d %} aria-current="true"{% endif %}>{{ d|fa }} روز</a>{% endfor %}</div></div>
+{{ subnav('sales_dashboard') }}
+<dl class="kpis">
+  <div class="kpi"><dt>استعلام باز</dt><dd><a href="{{ url_for('sales_inquiries', status='open') }}">{{ k.open|fa }}</a></dd></div>
+  <div class="kpi"><dt>به فروش رسید / از دست رفت</dt><dd>{{ k.won|fa }} / {{ k.lost|fa }}</dd></div>
+  <div class="kpi"><dt>درصد تبدیل استعلام</dt><dd>{{ k.conversion|pctp if k.conversion is not none else '—' }}</dd></div>
+  <div class="kpi"><dt>میانه زمان بستن استعلام</dt><dd>{{ (k.close_days|round(1))|string|replace('.', '٫')|fa ~ ' روز' if k.close_days is not none else '—' }}</dd></div>
+  <div class="kpi"><dt>فروش نقد / چکی (تومان)</dt><dd class="small">{{ k.cash_rial|toman }} / {{ k.credit_rial|toman }}</dd></div>
+  <div class="kpi"><dt>فاصله قیمت با رقیب در استعلام‌های ازدست‌رفته</dt><dd>{% if k.price_gap is not none %}{{ k.price_gap|pct }}<span class="small muted"> ({{ k.n_price_gap|fa }})</span>{% else %}—{% endif %}</dd></div>
+</dl>
+<div class="cols">
+  <section class="panel">
+    <header><h2>پیگیری امروز</h2><a class="btn small" href="{{ url_for('sales_inquiry_new') }}">استعلام تازه</a></header>
+    <div class="body">
+      {% if not f.inquiries and not f.reorders %}<p class="muted">کار پیگیری‌نشده‌ای نیست.</p>{% endif %}
+      {% if f.inquiries %}<h3 class="small">استعلام‌هایی که موعد پیگیری‌شان رسیده</h3>
+      <ul class="details-list">{% for i in f.inquiries %}<li><a href="{{ url_for('sales_inquiry', inquiry_id=i.id) }}">{{ i.customer_name }}</a>: <span class="pn">{{ i.product_key }}</span> × {{ i.qty|fa }} <span class="muted">(موعد {{ i.follow_up_on|jdate }})</span></li>{% endfor %}</ul>{% endif %}
+      {% if f.reorders %}<h3 class="small" style="margin-top:12px">مشتریانی که به زمان سفارش دوباره رسیده‌اند</h3>
+      <ul class="details-list">{% for r in f.reorders %}<li><a href="{{ url_for('sales_customer', customer_id=r.customer.id) }}">{{ r.customer.name }}</a>: معمولاً هر {{ r.typical_days|fa }} روز؛ آخرین سفارش {{ r.last|jdate }} ({% if r.days_left < 0 %}{{ (-r.days_left)|fa }} روز گذشته{% else %}{{ r.days_left|fa }} روز مانده{% endif %}) <span class="small muted">{{ r.products|join('، ') }}</span></li>{% endfor %}</ul>{% endif %}
+    </div>
+  </section>
+  <section class="panel">
+    <header><h2>دلیل از دست رفتن استعلام‌ها</h2></header>
+    <div class="body">
+      {% if k.reasons %}<table class="data"><tbody>{% for code, n in k.reasons %}<tr><td>{{ LOST_REASONS.get(code, code) }}</td><td class="num">{{ n|fa }}</td><td class="num muted">{{ (n / k.lost)|pctp }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<p class="muted">هنوز استعلام ازدست‌رفته‌ای در این بازه نیست. هر استعلامی را که به فروش نمی‌رسد با دلیلش ببندید؛ این مهم‌ترین داده برای فهمیدن «چرا مشتری نخرید» است.</p>{% endif %}
+    </div>
+  </section>
+</div>
+<div class="cols">
+  <section class="panel"><header><h2>فروش هر کالا (تومان)</h2></header>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>کالا</th><th class="num">تعداد</th><th class="num">مبلغ</th></tr></thead><tbody>
+    {% for p in k.by_product[:12] %}<tr><td><span class="pn">{{ p.key }}</span><span class="sub">{{ p.name or '' }}</span></td><td class="num">{{ p.qty|money }}</td><td class="num">{{ p.rial|toman }}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="3">در این بازه سفارشی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <section class="panel"><header><h2>مشتری‌های اصلی و ماه‌ها (تومان)</h2></header>
+    <div class="tbl-wrap"><table class="data"><tbody>
+    {% for c in k.by_customer[:8] %}<tr><td><a href="{{ url_for('sales_customer', customer_id=c.id) }}">{{ c.name }}</a></td><td class="num">{{ c.rial|toman }}</td></tr>{% endfor %}
+    {% for m, v in k.by_month %}<tr><td class="muted">ماه {{ m|fa }}</td><td class="num">{{ v|toman }}</td></tr>{% endfor %}
+    {% if not k.by_customer %}<tr class="empty-row"><td colspan="2">داده‌ای نیست.</td></tr>{% endif %}
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}

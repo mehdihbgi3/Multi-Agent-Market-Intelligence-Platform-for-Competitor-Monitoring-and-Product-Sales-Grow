@@ -1,0 +1,147 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API (sample)",
+ "osm3s": {
+  "timestamp_osm_base": "2026-11-01T00:00:00Z"
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 1001,
+   "lat": 35.7,
+   "lon": 51.4,
+   "tags": {
+    "shop": "car_repair",
+    "name": "برق خودرو نمونه یک",
+    "addr:street": "خیابان نمونه",
+    "addr:housenumber": "۱۲",
+    "phone": "+98 21 6612 3456"
+   }
+  },
+  {
+   "type": "way",
+   "id": 2002,
+   "center": {
+    "lat": 35.835,
+    "lon": 50.99
+   },
+   "nodes": [
+    1,
+    2,
+    3,
+    1
+   ],
+   "tags": {
+    "shop": "car_repair",
+    "name": "Sample Garage",
+    "name:fa": "تعمیرگاه نمونه دو",
+    "addr:city": "Karaj"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1003,
+   "lat": 29.61,
+   "lon": 52.54,
+   "tags": {
+    "shop": "car_parts",
+    "name": "پخش لوازم یدکی نمونه",
+    "addr:full": "شیراز، بلوار نمونه، پلاک ۵",
+    "contact:phone": "۰۷۱-۳۶۲۶۱۲۳۴",
+    "mobile": "+98 917 111 2233;0917 111 2233"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1004,
+   "lat": 35.71,
+   "lon": 51.41,
+   "tags": {
+    "shop": "car_parts",
+    "name": "لوازم یدکی نمونه سه"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1005,
+   "lat": 35.72,
+   "lon": 51.42,
+   "tags": {
+    "shop": "car_repair"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1006,
+   "lat": 35.73,
+   "lon": 51.43,
+   "tags": {
+    "shop": "car_repair",
+    "name": "تعمیرگاه"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1007,
+   "lat": 35.74,
+   "lon": 51.44,
+   "tags": {
+    "shop": "car_repair",
+    "name": "صافکاری و نقاشی نمونه"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1008,
+   "lat": 27.0,
+   "lon": 60.0,
+   "tags": {
+    "shop": "car_repair",
+    "name": "مکانیکی جاده نمونه"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1009,
+   "lat": 35.701,
+   "lon": 51.401,
+   "tags": {
+    "shop": "car_repair",
+    "name": "برق خودرو نمونه یک",
+    "phone": "021 7777 8888"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1010,
+   "lat": 38.08,
+   "lon": 46.3,
+   "tags": {
+    "shop": "car_repair",
+    "name": "برق خودرو نمونه یک",
+    "addr:city": "تبریز"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1011,
+   "lat": 35.75,
+   "lon": 51.45,
+   "tags": {
+    "amenity": "fuel",
+    "name": "جایگاه سوخت نمونه"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1012,
+   "lat": 35.76,
+   "lon": 51.46,
+   "tags": {
+    "shop": "car_repair",
+    "name": "-",
+    "phone": "021 1111 2222"
+   }
+  }
+ ]
+}

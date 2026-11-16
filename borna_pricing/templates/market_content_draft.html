@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}متن آگهی {{ d.product_key }}{% endblock %}
+{% block content %}
+<div class="page-title"><h1>متن آگهی <span class="pn">{{ d.product_key }}</span></h1><p>{{ tag({'draft': 'warn', 'approved': 'good', 'discarded': 'muted'}[d.status], {'draft': 'پیش‌نویس', 'approved': 'تأییدشده', 'discarded': 'کنار گذاشته'}[d.status]) }} {{ 'مدل زبانی' if d.source == 'model' else 'قاعده' }} · {{ who(d.created_by) }}، {{ d.created_at|jdt }}</p></div>
+{{ subnav('market_content') }}
+<section class="panel" style="margin-top:0"><header><h2>عنوان</h2></header><div class="body"><textarea readonly rows="2" style="width:100%">{{ d.title }}</textarea></div></section>
+<section class="panel"><header><h2>توضیح</h2></header><div class="body"><textarea readonly rows="12" style="width:100%">{{ d.body }}</textarea>
+  {% if d.flags_l %}<ul class="details-list" style="margin-top:10px">{% for f in d.flags_l %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
+  {% if d.status == 'draft' %}<div class="inline-form" style="margin-top:12px">
+    <form method="post" action="{{ url_for('market_content_decide', draft_id=d.id) }}">{{ csrf() }}<input type="hidden" name="decision" value="approve"><button class="btn">تأیید متن</button></form>
+    <form method="post" action="{{ url_for('market_content_decide', draft_id=d.id) }}">{{ csrf() }}<input type="hidden" name="decision" value="discard"><button class="btn quiet">کنار گذاشتن</button></form></div>{% endif %}
+  <p class="hint">سامانه آگهی را جایی منتشر نمی‌کند؛ متن تأییدشده را خودتان در فروشگاه کپی کنید.</p>
+</div></section>
+{% endblock %}

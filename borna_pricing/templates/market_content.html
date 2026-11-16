@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}متن آگهی{% endblock %}
+{% block content %}
+<div class="page-title"><h1>متن آگهی کالاهای برنا</h1><p>پیش‌نویس عنوان و توضیح برای باسلام، دیجی‌کالا یا سایت خودتان؛ فقط از مشخصات ثبت‌شده و با ذکر «طرح» بودن کالا.</p></div>
+{{ subnav('market_content') }}
+<section class="panel" style="margin-top:0"><div class="tbl-wrap"><table class="data">
+  <thead><tr><th>کد</th><th>کالا</th><th>آخرین متن</th><th>اقدام</th></tr></thead>
+  <tbody>{% for p in products %}{% set d = latest.get(p.key) %}<tr>
+    <td><span class="pn">{{ p.key }}</span></td><td>{{ p.name }}</td>
+    <td>{% if d %}<a href="{{ url_for('market_content_draft', draft_id=d.id) }}">{{ d.title|truncate(70) }}</a><span class="sub">{{ tag('good' if d.status == 'approved' else 'warn', 'تأییدشده' if d.status == 'approved' else 'پیش‌نویس') }} {{ 'مدل زبانی' if d.source == 'model' else 'قاعده' }}، {{ d.created_at|jdate }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td><form method="post" action="{{ url_for('market_content_generate') }}" class="inline-form">{{ csrf() }}<input type="hidden" name="product_key" value="{{ p.key }}">{% if ai_ready() %}<label class="checkline small"><input type="checkbox" name="use_model" value="1" checked> با مدل</label>{% endif %}<button class="btn small quiet">پیش‌نویس تازه</button></form></td></tr>
+  {% endfor %}</tbody>
+</table></div></section>
+{% endblock %}

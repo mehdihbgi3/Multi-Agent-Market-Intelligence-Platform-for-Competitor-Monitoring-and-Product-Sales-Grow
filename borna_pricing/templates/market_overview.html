@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag %}
+{% from "_market.html" import subnav, toman, position, tier_tag with context %}
+{% from "_mgmt.html" import gap_chart, side_summary %}
+{% block title %}بازار و رقبا{% endblock %}
+{% block content %}
+<div class="page-title"><h1>بازار و رقبا</h1><p>قیمت هر عدد برنا در برابر قیمت هر عدد رقبا، عمده با عمده و تکی با تکی؛ فقط قیمت‌های تأییدشده {{ cfg.market.stale_days|fa }} روز اخیر.</p></div>
+{{ subnav('market_overview') }}
+{% set k = ov.kpi %}
+{% if k.paused %}<div class="alert warn"><div><h2>اجرای خودکار ایجنت‌ها متوقف است</h2><p>پایش و گزارش خودکار انجام نمی‌شود تا مدیر سامانه آن را در صفحه «ایجنت‌ها» روشن کند.</p></div></div>{% endif %}
+{% if not k.sources_ok and not k.listings %}
+<div class="alert info"><div><h2>هنوز داده‌ای از بازار نیست</h2>
+<p>{% if cfg.scout.enabled %}کاشف بازار هر روز خودش ترب، ایمالز، دیجی‌کالا، باسلام و دیوار را می‌گردد؛ مدیر سامانه می‌تواند همین حالا آن را در «ایجنت‌ها» اجرا کند. {% endif %}راه‌های دیگر: مدیر سامانه در «منبع‌ها» سایت رقیب را ثبت و {% if cfg.collector.respect_robots %}پس از بررسی robots.txt و شرایط استفاده، {% endif %}مجاز کند؛ یا فروش قیمت‌هایی را که تلفنی، در کانال‌ها یا در فاکتور رقبا می‌بیند در «ثبت قیمت رقیب» وارد کند.</p></div></div>
+{% endif %}
+<dl class="kpis">
+  <div class="kpi"><dt>منبع مجاز / فعال</dt><dd>{{ k.sources_ok|fa }} / {{ k.sources|fa }}</dd></div>
+  <div class="kpi"><dt>آگهی‌ها</dt><dd><a href="{{ url_for('market_listings') }}">{{ k.listings|fa }}</a></dd></div>
+  <div class="kpi"><dt>تطبیق‌شده</dt><dd>{{ k.matched|fa }}</dd></div>
+  <div class="kpi"><dt>منتظر تأیید تطبیق</dt><dd>{% if can('approver') %}<a href="{{ url_for('market_review') }}">{{ k.to_review|fa }}</a>{% else %}{{ k.to_review|fa }}{% endif %}</dd></div>
+  <div class="kpi"><dt>قیمت منتظر بررسی</dt><dd>{% if can('approver') %}<a href="{{ url_for('market_observations') }}">{{ k.obs_review|fa }}</a>{% else %}{{ k.obs_review|fa }}{% endif %}</dd></div>
+  <div class="kpi"><dt>آگهی بدون تطبیق</dt><dd><a href="{{ url_for('market_listings', state='unmatched') }}">{{ k.unmatched|fa }}</a></dd></div>
+  <div class="kpi"><dt>آخرین پایش</dt><dd class="small">{{ k.last_watch|jdt if k.last_watch else 'هنوز انجام نشده' }}</dd></div>
+</dl>
+
+{% set sw, sr = ov.summary.wholesale, ov.summary.retail %}
+<section class="panel cmpz" aria-labelledby="cmp-title">
+  <header><h2 id="cmp-title">قیمت هر عدد برنا در برابر رقبا: عمده با عمده، تکی با تکی</h2><span class="small muted">میانه قیمت‌های تأییدشده رقبای هم‌طرح در {{ cfg.market.stale_days|fa }} روز اخیر</span></header>
+  <div class="body">
+    <p class="small muted cmp-lead">قیمت برنا همان قیمت هر عدد در لیست رسمی است (قیمت یک عدد؛ حداقل سفارش ۱۰۰ عدد). «عمده با عمده» آن را با میانه قیمت هر عدد عمده‌فروش‌ها می‌سنجد و «تکی با تکی» با میانه قیمت تکی فروشنده‌ها. قیمت بسته‌های چندتایی رقبا بر تعداد بسته تقسیم شده و بسته ۱۰ عددی و بیشتر عمده حساب می‌شود. آگهی با سطح نامشخص (بیشتر فروشگاه‌های اینترنتی) تکی است. «هم‌قیمت» یعنی کمتر از ۲٪ فاصله؛ نوار خاکستری کنار خط صفر همین محدوده است.</p>
+    <div class="msummary">{{ side_summary(sw) }}{{ side_summary(sr) }}
+      <div class="mlegend">{% for part in sw.parts %}<span><i class="sw sq seg-{{ part.key }}"></i>{{ part.label }}</span>{% endfor %}</div>
+    </div>
+    <div class="cmp-charts">
+      {% for s in ('wholesale', 'retail') %}{% set ch = ov.charts[s] %}{% set sm = ov.summary[s] %}
+      <div class="cmp-chart">
+        <h3 class="msub">{{ ch.title }}: {{ 'قیمت هر عدد برنا (لیست رسمی) در برابر میانه قیمت هر عدد عمده‌فروش‌ها' if s == 'wholesale' else 'قیمت هر عدد برنا (لیست رسمی) در برابر میانه قیمت تکی رقبا' }}</h3>
+        {% if ch.rows %}{{ gap_chart(ch) }}{% else %}<div class="mempty"><p>{% if not ov.publication %}هنوز لیست رسمی منتشر نشده است.{% elif s == 'wholesale' %}هنوز قیمت عمده تأییدشده‌ای از رقبا نیست. قیمت عمده را از «ثبت قیمت رقیب» با سطح «عمده» یا از «خواندن لیست قیمت» وارد کنید.{% else %}هنوز قیمت تکی تأییدشده‌ای از رقبا نیست.{% endif %}</p></div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="pos-title">
+  <header><h2 id="pos-title">جایگاه قیمت هر کالا (تومان، هر عدد)</h2>
+    <div class="table-tools">
+      {% if n_data and n_data < ov.table|length %}<div class="seg"><a href="{{ url_for('market_overview') }}"{% if not show_all %} aria-current="true"{% endif %}>دارای داده ({{ n_data|fa }})</a><a href="{{ url_for('market_overview', all=1) }}"{% if show_all %} aria-current="true"{% endif %}>همه ({{ ov.table|length|fa }})</a></div>{% endif %}
+      <input type="search" placeholder="جست‌وجو" data-filter-for="mkt" aria-label="جست‌وجو در کالاها">
+      <span class="small muted"><span data-count-for="mkt">{{ rows|length|fa }}</span> کالا</span></div></header>
+  <div class="body small muted">جایگزین‌ها (طرح دیگر برای همان خودرو) در میانه نیستند.{% if ov.sep_label %} آگهی‌های «{{ ov.sep_label }}» ستون جدا دارند و در میانه و فاصله برنا نیستند.{% endif %} «کم‌داده» یعنی کمتر از {{ cfg.market.min_prices|fa }} قیمت؛ آن فاصله را با احتیاط بخوانید. قیمتی که بیش از {{ cfg.market.outlier_high|string|replace('.', '٫')|fa }} برابر یا کمتر از {{ cfg.market.outlier_low|string|replace('.', '٫')|fa }} برابر قیمت‌های دیگر همان کالا باشد، پیش از حساب شدن به «بررسی قیمت‌ها» می‌رود.</div>
+  <div class="tbl-wrap">
+  <table class="data grouped" id="mkt">
+    <thead>
+      <tr><th rowspan="2">کد</th><th rowspan="2">کالا</th><th rowspan="2" class="num">قیمت هر عدد برنا (لیست رسمی)</th><th colspan="2" class="grp">عمده با عمده</th><th colspan="2" class="grp">تکی با تکی</th>{% if ov.sep_label %}<th rowspan="2" class="num">میانه {{ ov.sep_label }}</th>{% endif %}<th rowspan="2">ارزان‌ترین رقیب</th><th rowspan="2" class="num">آگهی</th><th rowspan="2" class="num">ناموجود</th><th rowspan="2" class="num">منتظر تأیید</th></tr>
+      <tr><th class="num grp-start">میانه هر عدد رقبا</th><th>فاصله</th><th class="num grp-start">میانه تکی رقبا</th><th>فاصله</th></tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}{% set w, t = r.cmp.wholesale, r.cmp.retail %}
+      <tr>
+        <td><a class="pn" href="{{ url_for('market_product', key=r.product.key) }}">{{ r.product.key }}</a></td>
+        <td>{{ r.product.name }}</td>
+        <td class="num strong">{{ toman(r.official) }}</td>
+        <td class="num grp-start">{{ toman(w.median) }}{% if w.n_priced %}<span class="sub">{{ w.n_priced|fa }} قیمت</span>{% endif %}</td>
+        <td>{{ position(w.gap) }}{% if w.low_data %}<span class="sub">{{ tag('warn', 'کم‌داده') }}</span>{% endif %}</td>
+        <td class="num grp-start">{{ toman(t.median) }}{% if t.n_priced %}<span class="sub">{{ t.n_priced|fa }} قیمت</span>{% endif %}</td>
+        <td>{{ position(t.gap) }}{% if t.low_data %}<span class="sub">{{ tag('warn', 'کم‌داده') }}</span>{% endif %}</td>
+        {% if ov.sep_label %}<td class="num">{{ toman(r.sep_median) }}{% if r.sep_n %}<span class="sub">{{ r.sep_n|fa }} قیمت، {{ LEVEL_LABELS[r.sep_level] }}</span>{% endif %}</td>{% endif %}
+        <td>{% for s in ('wholesale', 'retail') %}{% set ch = r.cheapest_side[s] %}{% if ch %}<div class="cheap-line"><span class="muted">{{ LEVEL_LABELS[s] }}:</span> {{ ch.seller or ch.source_name }} <span class="num">{{ ch.obs.price_rial|toman }}</span><span class="sub">{{ TIER_LABELS[ch.tier] }}{% if ch.relation == 'substitute' %}، جایگزین{% endif %}</span></div>{% endif %}{% endfor %}{% if not r.cheapest %}<span class="muted">—</span>{% endif %}</td>
+        <td class="num">{{ r.n_listings|fa }}</td>
+        <td class="num">{% if r.oos %}{{ tag('warn', r.oos|fa) }}{% else %}<span class="muted">۰</span>{% endif %}</td>
+        <td class="num">{% if r.pending %}{{ r.pending|fa }}{% else %}<span class="muted">۰</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

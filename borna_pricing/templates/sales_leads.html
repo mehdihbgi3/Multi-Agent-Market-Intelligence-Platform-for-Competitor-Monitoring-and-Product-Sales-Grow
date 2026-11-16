@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}کسب‌وکارها و مشتریان احتمالی{% endblock %}
+{% block content %}
+<div class="page-title"><h1>کسب‌وکارها و مشتریان احتمالی</h1><div class="inline-form"><a class="btn" href="{{ url_for('sales_leads_xlsx', status=status, kind=kind, city=city, q=q, phone=phone) }}">دریافت Excel</a><form method="post" action="{{ url_for('sales_leads_refresh') }}">{{ csrf() }}<button class="btn quiet">به‌روزرسانی از آگهی‌ها</button></form></div></div>
+{{ subnav('sales_leads') }}
+<div class="alert info"><div><p>فروشندگان و عمده‌فروشانی که سنسور اکسیژن می‌فروشند، و تعمیرگاه‌ها و فروشگاه‌های لوازم یدکی‌ای که کاشف بازار در دیوار و نقشه اوپن‌استریت‌مپ پیدا کرده است. همه خریدار احتمالی برنا هستند. با هر کدام خودتان تماس بگیرید؛ سامانه به کسی پیام نمی‌فرستد. تلفن از سه جا می‌آید: تلفنی که خود کسب‌وکار روی نقشه ثبت کرده، پرونده مشتری، یا شماره‌ای که خودتان در ستون «اقدام» ثبت می‌کنید. دیوار و ترب شماره را فقط بعد از زدن «اطلاعات تماس» نشان می‌دهند و سامانه این دکمه را خودکار نمی‌زند؛ لینک ردیف را باز کنید و شماره را این‌جا یا در فایل Excel بنویسید. «دریافت Excel» همین فهرست را با همین فیلترها، با نشانی و تلفن، برای سرپرست فروش می‌دهد.</p></div></div>
+<details class="panel" style="margin-top:0"><summary class="body">بارگذاری تلفن‌ها از Excel</summary>
+  <div class="body"><p class="small muted">در فایلی که «دریافت Excel» داده، شماره هر کسب‌وکار را در ستون «تلفن» همان ردیف بنویسید و فایل را این‌جا بدهید. ستون «شناسه» را تغییر ندهید؛ ردیف‌های بی‌تغییر دست نمی‌خورند و خانه خالی شماره قبلی را پاک نمی‌کند. برای کار روی ردیف‌های بی‌تلفن، اول فیلتر «تلفن: ندارد» را بزنید و بعد Excel بگیرید.</p>
+  <form method="post" action="{{ url_for('sales_leads_phones') }}" enctype="multipart/form-data" class="inline-form">{{ csrf() }}<input type="file" name="file" accept=".xlsx" required aria-label="فایل Excel"><button class="btn small">بارگذاری تلفن‌ها</button></form></div>
+</details>
+<section class="panel" style="margin-top:0">
+  <header>
+    <div class="seg"><a href="{{ url_for('sales_leads', kind=kind, city=city, q=q, phone=phone) }}"{% if not status %} aria-current="true"{% endif %}>همه</a>{% for k, v in LEAD_STATUS.items() %}<a href="{{ url_for('sales_leads', status=k, kind=kind, city=city, q=q, phone=phone) }}"{% if status == k %} aria-current="true"{% endif %}>{{ v }}</a>{% endfor %}</div>
+    <div class="seg"><a href="{{ url_for('sales_leads', status=status, city=city, q=q, phone=phone) }}"{% if not kind %} aria-current="true"{% endif %}>همه نوع‌ها</a>{% for k, v in LEAD_KINDS.items() %}<a href="{{ url_for('sales_leads', status=status, kind=k, city=city, q=q, phone=phone) }}"{% if kind == k %} aria-current="true"{% endif %}><i class="sw dot" style="background:{{ KIND_COLORS[k] }}"></i> {{ v }}</a>{% endfor %}</div>
+    <form method="get" class="inline-form">{% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}{% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}<label class="field">نام یا تلفن<input type="search" name="q" value="{{ q or '' }}" placeholder="جست‌وجو"></label><label class="field">تلفن<select name="phone"><option value="">همه</option>{% for k, v in PHONE_FILTERS.items() %}<option value="{{ k }}"{% if phone == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>{% if cities %}<label class="field">شهر<select name="city"><option value="">همه شهرها</option>{% for name, n in cities %}<option value="{{ name }}"{% if city == name %} selected{% endif %}>{{ name }} ({{ n|fa }})</option>{% endfor %}</select></label>{% endif %}<button class="btn small quiet">نمایش</button></form>
+  </header>
+  {% if rows|length > shown %}<div class="body small muted">{{ shown|fa }} مورد از {{ rows|length|fa }} نشان داده شده است؛ برای دیدن بقیه شهر یا نوع را انتخاب کنید یا نام و تلفن را جست‌وجو کنید. «دریافت Excel» همه {{ rows|length|fa }} مورد را دارد.</div>{% endif %}
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>نام</th><th>نوع</th><th>شهر</th><th>تلفن</th><th>منبع</th><th class="num">آگهی</th><th class="num">بازه قیمت (تومان)</th><th>آخرین بار</th><th>وضعیت</th><th>اقدام</th></tr></thead>
+    <tbody>{% for l in rows[:shown] %}<tr>
+      <td>{{ l.name }}{% if l.address %}<span class="sub">{{ l.address }}</span>{% endif %}{% if l.example_url %}<span class="sub"><a href="{{ l.example_url }}" rel="noopener noreferrer nofollow" target="_blank">{{ link_label(l.example_url) }}</a></span>{% endif %}{% if l.note %}<span class="sub">{{ l.note }}</span>{% endif %}</td>
+      <td class="small">{{ LEAD_KINDS[l.kind] }}</td>
+      <td class="small">{{ l.city or '—' }}</td>
+      <td class="small">{% for p in l.phones_l %}<a href="tel:{{ p }}" dir="ltr">{{ p|fa }}</a>{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</td>
+      <td class="small">{{ l.sources_l|join('، ') }}</td><td class="num">{{ l.n_listings|fa }}</td>
+      <td class="num small">{% if l.price_min_rial %}{{ l.price_min_rial|toman }}{% if l.price_max_rial and l.price_max_rial != l.price_min_rial %} تا {{ l.price_max_rial|toman }}{% endif %}{% else %}—{% endif %}</td>
+      <td class="small">{{ l.last_seen_at|jdate }}</td>
+      <td>{{ tag({'new':'info','contacted':'warn','customer':'good','ignored':'muted'}[l.status], LEAD_STATUS[l.status]) }}</td>
+      <td>{% if l.status != 'customer' %}<div class="inline-form">
+        <form method="post" action="{{ url_for('sales_lead_status', lead_id=l.id) }}" class="inline-form">{{ csrf() }}<input type="hidden" name="next" value="{{ request.full_path }}"><select name="status" aria-label="وضعیت">{% for k, v in LEAD_STATUS.items() if k != 'customer' %}<option value="{{ k }}"{% if l.status == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select><input type="text" name="note" placeholder="یادداشت" aria-label="یادداشت"><input type="tel" name="phone" value="{{ l.phone or '' }}" placeholder="تلفن" aria-label="تلفن" title="شماره تازه جای شماره قبلی می‌نشیند؛ چند شماره را با ویرگول جدا کنید." inputmode="tel" size="12" dir="ltr"><button class="btn small quiet">ثبت</button></form>
+        <form method="post" action="{{ url_for('sales_lead_customer', lead_id=l.id) }}">{{ csrf() }}<button class="btn small">مشتری شد</button></form></div>
+      {% else %}<a href="{{ url_for('sales_customer', customer_id=l.customer_id) }}">پرونده مشتری</a>{% endif %}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="10">{% if status or kind or city or q or phone %}با این فیلتر یا جست‌وجو چیزی پیدا نشد.{% else %}هنوز کسب‌وکاری پیدا نشده است. وقتی کاشف بازار یا پایشگر قیمت آگهی‌هایی با نام فروشنده یا تعمیرگاه پیدا کند، یا کاشف بازار نقشه اوپن‌استریت‌مپ را بخواند، اینجا می‌آیند.{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

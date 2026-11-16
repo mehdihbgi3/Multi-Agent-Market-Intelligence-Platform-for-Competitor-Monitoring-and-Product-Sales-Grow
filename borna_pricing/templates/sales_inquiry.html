@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, status_tag, days_label with context %}
+{% block title %}استعلام {{ i.id }}{% endblock %}
+{% block content %}
+<div class="page-title"><h1>استعلام شماره {{ i.id|fa }}</h1><p>{{ status_tag(i.status) }}</p></div>
+{{ subnav('sales_inquiries') }}
+<div class="cols">
+  <section class="panel" style="margin-top:0"><header><h2>جزئیات</h2></header><div class="body">
+    <dl class="kv">
+      <dt>مشتری</dt><dd><a href="{{ url_for('sales_customer', customer_id=i.customer_id) }}">{{ i.customer_name }}</a></dd>
+      <dt>کالا</dt><dd><a class="pn" href="{{ url_for('market_product', key=i.product_key) }}">{{ i.product_key }}</a> {{ i.product_name or '' }}</dd>
+      <dt>تعداد</dt><dd>{{ i.qty|money }}</dd>
+      <dt>قیمت واحد پیشنهادی</dt><dd>{{ i.quoted_price_rial|toman if i.quoted_price_rial else '—' }} تومان</dd>
+      <dt>پرداخت</dt><dd>{{ days_label(i.payment_days) }}</dd>
+      <dt>راه ارتباط</dt><dd>{{ SALES_CHANNELS.get(i.channel, i.channel) }}</dd>
+      <dt>ثبت</dt><dd>{{ who(i.created_by) }}، {{ i.created_at|jdt }}</dd>
+      {% if i.note %}<dt>توضیح</dt><dd>{{ i.note }}</dd>{% endif %}
+      {% if i.status == 'open' %}<dt>پیگیری</dt><dd>{{ i.follow_up_on|jdate if i.follow_up_on else '—' }}</dd>{% endif %}
+      {% if i.status != 'open' %}<dt>بسته شد</dt><dd>{{ who(i.closed_by) }}، {{ i.closed_at|jdt }}</dd>{% endif %}
+      {% if i.status == 'lost' %}<dt>دلیل</dt><dd>{{ LOST_REASONS.get(i.lost_reason, '—') }}</dd>
+        {% if i.competitor %}<dt>رقیب</dt><dd>{{ i.competitor }}{% if i.competitor_price_rial %} — {{ i.competitor_price_rial|toman }} تومان{% endif %}</dd>{% endif %}{% endif %}
+      {% if i.outcome_note %}<dt>یادداشت نتیجه</dt><dd>{{ i.outcome_note }}</dd>{% endif %}
+      {% if i.order_id %}<dt>سفارش</dt><dd>شماره {{ i.order_id|fa }}</dd>{% endif %}
+    </dl>
+    {% set sug = reason_suggestion(i.id) if i.status == 'lost' else none %}
+    {% if sug %}<div class="alert info" style="margin:12px 0 0"><div><p>پیشنهاد {{ 'مدل زبانی' if sug.source == 'model' else 'قاعده کلیدواژه' }} برای دلیل: <b>{{ LOST_REASONS.get(sug.value, sug.value) }}</b>{% if sug.confidence %} (اطمینان {{ sug.confidence|fa }}){% endif %}</p>
+      {% if can('approver') %}<div class="inline-form">
+        <form method="post" action="{{ url_for('sales_suggestion_decide', suggestion_id=sug.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="decision" value="apply"><button class="btn small">ثبت این دلیل</button></form>
+        <form method="post" action="{{ url_for('sales_suggestion_decide', suggestion_id=sug.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="decision" value="dismiss"><button class="btn small quiet">نه</button></form></div>{% endif %}
+    </div></div>{% endif %}
+    {% if i.status == 'lost' and can('approver') %}
+    <form method="post" action="{{ url_for('sales_inquiry_reason', inquiry_id=i.id) }}" class="inline-form" style="margin-top:12px">{{ csrf() }}
+      <label class="field">اصلاح دلیل<select name="lost_reason">{% for k, v in LOST_REASONS.items() %}<option value="{{ k }}"{% if i.lost_reason == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label><button class="btn quiet">ثبت</button></form>
+    {% endif %}
+  </div></section>
+  {% if i.status == 'open' %}
+  <section class="panel" style="margin-top:0"><header><h2>نتیجه</h2></header><div class="body">
+    <form method="post" action="{{ url_for('sales_inquiry_close', inquiry_id=i.id) }}" class="inline-form">{{ csrf() }}
+      <input type="hidden" name="outcome" value="won">
+      <label class="checkline small"><input type="checkbox" name="create_order" value="1" checked> سفارش هم با همین تعداد و قیمت ثبت شود</label>
+      <button class="btn">به فروش رسید</button></form>
+    <hr style="border:0;border-top:1px solid var(--rule-2);margin:14px 0">
+    <form method="post" action="{{ url_for('sales_inquiry_close', inquiry_id=i.id) }}" class="form-grid">{{ csrf() }}
+      <input type="hidden" name="outcome" value="lost">
+      <label class="field">دلیل از دست رفتن *<select name="lost_reason">{% for k, v in LOST_REASONS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+      <label class="field">رقیب (اگر می‌دانید)<input type="text" name="competitor" maxlength="120"></label>
+      <label class="field">قیمت رقیب برای هر عدد<input type="text" name="competitor_price" inputmode="numeric"></label>
+      <label class="field">واحد<select name="unit"><option value="toman">تومان</option><option value="rial">ریال</option></select></label>
+      <label class="field wide">یادداشت<input type="text" name="note" maxlength="1000"></label>
+      <div class="wide"><button class="btn quiet">از دست رفت</button> <span class="hint">قیمت رقیب برای تأیید به بخش «بازار و رقبا» می‌رود.</span></div>
+    </form>
+    <hr style="border:0;border-top:1px solid var(--rule-2);margin:14px 0">
+    <form method="post" action="{{ url_for('sales_inquiry_follow_up', inquiry_id=i.id) }}" class="inline-form">{{ csrf() }}
+      <label class="field">تاریخ پیگیری تازه<input type="text" name="follow_up_on" placeholder="۱۴۰۵/۰۸/۱۵" required></label><button class="btn quiet">ثبت</button></form>
+  </div></section>
+  {% endif %}
+</div>
+{% endblock %}

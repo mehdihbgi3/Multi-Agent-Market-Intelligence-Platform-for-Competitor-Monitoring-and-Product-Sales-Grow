@@ -1,0 +1,48 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API (sample)",
+ "elements": [
+  {
+   "type": "node",
+   "id": 9001,
+   "lat": 35.6892,
+   "lon": 51.389,
+   "tags": {
+    "place": "city",
+    "name": "تهران",
+    "name:en": "Tehran"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9002,
+   "lat": 35.84,
+   "lon": 50.9391,
+   "tags": {
+    "place": "city",
+    "name": "کرج",
+    "name:en": "Karaj"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9003,
+   "lat": 29.5918,
+   "lon": 52.5837,
+   "tags": {
+    "place": "city",
+    "name": "شیراز"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9004,
+   "lat": 38.08,
+   "lon": 46.2919,
+   "tags": {
+    "place": "city",
+    "name": "تبریز"
+   }
+  }
+ ]
+}

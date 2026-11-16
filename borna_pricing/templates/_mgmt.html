@@ -1,0 +1,65 @@
+{% macro href(item) -%}
+{%- if item.endpoint %}{{ url_for(item.endpoint, **item.args) }}{% elif item.anchor %}#{{ item.anchor }}{% else %}#{% endif -%}
+{%- endmacro %}
+
+{% macro legend(items, shape='dot') -%}
+<div class="mlegend" role="list">{% for it in items %}<span role="listitem"><i class="sw {{ shape }}" style="background:{{ it.color }}"></i>{{ it.name or it.label }}</span>{% endfor %}</div>
+{%- endmacro %}
+
+{% macro gap_text(gap) -%}
+{%- if gap is none %}<span class="muted">—</span>{% elif gap > 0.02 %}<span class="gtxt dear">{{ gap|pct(1) }}</span>{% elif gap < -0.02 %}<span class="gtxt cheap">{{ gap|pct(1) }}</span>{% else %}<span class="gtxt even">{{ gap|pct(1) }}</span>{% endif -%}
+{%- endmacro %}
+
+{% macro div_row(label, gap, w, note, beyond=false, link=none, title=none) -%}
+<div class="drow">
+  <div class="dlab" title="{{ title or label }}">{% if link %}<a href="{{ link }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</div>
+  <div class="dtrack" aria-hidden="true"><span class="dzero"></span>{% if gap is not none %}<span class="dbar {{ 'dear' if gap > 0 else 'cheap' }}{{ ' beyond' if beyond else '' }}" style="{{ 'left:50%' if gap > 0 else 'right:50%' }};width:{{ '%.2f'|format(w) }}%"></span>{% endif %}</div>
+  <div class="dval">{{ gap_words(gap) }}<span class="sub">{{ note }}</span></div>
+</div>
+{%- endmacro %}
+
+{% macro hbar(label, w, value, color=none, sub=none, link=none, title=none) -%}
+<div class="hrow">
+  <div class="hlab" title="{{ title or label }}">{% if link %}<a href="{{ link }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</div>
+  <div class="htrack" aria-hidden="true">{% if w > 0 %}<span class="hfill" style="width:{{ '%.2f'|format(w) }}%{% if color %};background:{{ color }}{% endif %}"></span>{% endif %}</div>
+  <div class="hval">{{ value }}{% if sub %}<span class="sub">{{ sub }}</span>{% endif %}</div>
+</div>
+{%- endmacro %}
+
+{% macro empty(text, link=none, link_text=none) -%}
+<div class="mempty"><p>{{ text }}</p>{% if link %}<a class="btn small quiet" href="{{ link }}">{{ link_text }}</a>{% endif %}</div>
+{%- endmacro %}
+
+{% macro tile(k) -%}
+{%- set inner -%}
+  <span class="lbl">{{ k.label }}</span>
+  <span class="val">{{ k.value }}{% if k.unit %}<small>{{ k.unit }}</small>{% endif %}</span>
+  {% if k.delta %}<span class="dlt {{ k.tone }}">{{ k.delta }}{% if k.delta_note %} <span class="note">{{ k.delta_note }}</span>{% endif %}</span>{% endif %}
+{%- endset -%}
+{% if k.endpoint or k.anchor %}<a class="mtile" href="{{ href(k) }}">{{ inner }}</a>{% else %}<div class="mtile">{{ inner }}</div>{% endif %}
+{%- endmacro %}
+
+
+{% macro gap_chart(ch) -%}
+<div class="gchart" role="list" aria-label="{{ ch.title }}">
+  <div class="drow axis" aria-hidden="true"><div class="dlab"></div><div class="daxis">{% for label, pos in ch.ticks %}<span style="left:{{ pos }}%">{{ label }}</span>{% endfor %}</div><div class="dval"></div></div>
+  <div class="drow axis captions" aria-hidden="true"><div class="dlab"></div><div class="dcap"><span>برنا ارزان‌تر</span><span>برنا گران‌تر</span></div><div class="dval"></div></div>
+  {% for r in ch.rows %}
+  <div class="drow gc-row" role="listitem">
+    <div class="dlab"><a class="pn" href="{{ url_for('market_product', key=r.key) }}">{{ r.key }}</a><span class="nm" title="{{ r.name }}">{{ r.name }}</span></div>
+    <div class="dtrack" aria-hidden="true"><span class="dband" style="left:{{ '%.2f'|format(50 - ch.band) }}%;width:{{ '%.2f'|format(2 * ch.band) }}%"></span><span class="dgrid" style="left:25%"></span><span class="dgrid" style="left:75%"></span><span class="dzero"></span>{% if r.w > 0 %}<span class="dbar {{ 'dear' if r.gap > 0 else 'cheap' }}{{ ' beyond' if r.beyond else '' }}" style="{{ 'left:50%' if r.gap > 0 else 'right:50%' }};width:{{ '%.2f'|format(r.w) }}%" title="{{ gap_words(r.gap) }}"></span>{% endif %}</div>
+    <div class="dval"><b>{{ gap_words(r.gap) }}</b>{% if r.low_data %} <span class="tag warn">کم‌داده</span>{% endif %}<span class="sub">برنا {{ r.borna|toman }}، میانه رقبا {{ r.median|toman }} تومان ({{ r.n|fa }} قیمت)</span></div>
+  </div>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro side_summary(s) -%}
+<div class="srow">
+  <div class="slab">{{ s.title }}</div>
+  <div class="sbar" role="img" aria-label="{{ s.title }}: {{ s.cheaper|fa }} ارزان‌تر، {{ s.similar|fa }} هم‌قیمت، {{ s.pricier|fa }} گران‌تر">
+    {% if s.n %}{% for part in s.parts if part.n %}<span class="seg-{{ part.key }}" style="flex-grow:{{ part.n }}" title="{{ part.label }}: {{ part.n|fa }} کالا">{% if part.pct >= 12 %}{{ part.n|fa }}{% endif %}</span>{% endfor %}{% else %}<span class="seg-none">داده‌ای نیست</span>{% endif %}
+  </div>
+  <div class="sval">میانه: <b>{{ gap_words(s.median) }}</b><span class="sub">{{ s.n|fa }} کالا</span></div>
+</div>
+{%- endmacro %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_market.html" import subnav with context %}
+{% block title %}بررسی سایت‌ها{% endblock %}
+{% block content %}
+<div class="page-title"><h1>بررسی سایت‌ها</h1><p>از هر سایت بازار (ترب، ایمالز، دیجی‌کالا، باسلام، دیوار)، سرویس نقشه و منبع نرخ دلار یک صفحه آزمون خوانده می‌شود تا معلوم شود از همین سرور در دسترس‌اند و سامانه هنوز آگهی‌ها و قیمت‌ها را درست می‌خواند. چیزی در پایگاه‌داده ذخیره نمی‌شود.</p></div>
+{{ subnav('market_site_check') }}
+<section class="panel" style="margin-top:0">
+  <div class="body">
+    <form method="post" class="actions">{{ csrf() }}<button class="btn"{% if running %} disabled{% endif %}>{{ 'در حال بررسی…' if running else 'بررسی همین حالا' }}</button>
+      <span class="small muted">همین بررسی از خط فرمان: <span class="pn">python -m borna_pricing check-sites</span></span></form>
+  </div>
+</section>
+{% if report %}
+<section class="panel" aria-labelledby="sc-title">
+  <header><h2 id="sc-title">آخرین بررسی: {{ report.at|jdt }}</h2><span class="small muted">{{ report.ok|fa }} از {{ report.total|fa }} سالم؛ جست‌وجوی آزمون «{{ report.query }}»</span></header>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>سایت یا منبع</th><th>وضعیت</th><th class="num">آگهی خوانده‌شده</th><th class="num">با قیمت</th><th>روش</th><th class="num">زمان (ثانیه)</th><th>نمونه</th></tr></thead>
+    <tbody>
+    {% for r in report.results %}
+      <tr>
+        <td>{{ r.label }}{% if r.url %}<span class="sub"><a href="{{ r.url }}" rel="noopener noreferrer nofollow" target="_blank">{{ link_label(r.url) }}</a></span>{% endif %}</td>
+        <td>{{ tag({'ok': 'good', 'empty': 'warn', 'blocked': 'crit', 'unreachable': 'crit', 'error': 'crit', 'off': 'muted'}.get(r.status, 'muted'), STATUS.get(r.status, r.status)) }}{% if r.http %}<span class="sub">HTTP {{ r.http }}</span>{% endif %}{% if r.message %}<span class="sub">{{ r.message }}</span>{% endif %}</td>
+        <td class="num">{{ r.items|fa }}{% if r.products %}<span class="sub">{{ r.products|fa }} صفحه کالا</span>{% endif %}</td>
+        <td class="num">{{ r.priced|fa }}</td>
+        <td class="small">{% if r.key == 'rate' %}درخواست مستقیم{% elif r.key == 'osm' %}سرویس Overpass{% else %}{{ 'مرورگر نامرئی' if r.browser else 'درخواست ساده' }}{% endif %}</td>
+        <td class="num">{{ r.seconds|fa }}</td>
+        <td class="small">{% for s in r.sample %}<div>{{ s.title }}{% if s.price %} <span class="num">{{ s.price }}</span>{% endif %}{% if s.seller %}<span class="muted">، {{ s.seller }}</span>{% endif %}</div>{% else %}<span class="muted">—</span>{% endfor %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="body small muted">«مسدود شد» یعنی سایت درخواست را رد کرد (معمولاً به‌خاطر نشانی IP بیرون از ایران یا تعداد زیاد درخواست)؛ «در دسترس نیست» یعنی از این سرور اصلاً به سایت وصل نشد؛ «باز شد ولی آگهی نداشت» یعنی ساختار صفحه عوض شده یا جست‌وجو نتیجه نداشت و باید بررسی شود.</div>
+</section>
+{% else %}
+<section class="panel"><div class="body"><p class="muted">هنوز بررسی‌ای انجام نشده است.</p></div></section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}مشاور قیمت{% endblock %}
+{% block content %}
+<div class="page-title"><h1>مشاور قیمت</h1><form method="post" action="{{ url_for('sales_advisor_run') }}">{{ csrf() }}<button class="btn quiet">اجرای همین حالا</button></form></div>
+{{ subnav('sales_advisor') }}
+<div class="alert info"><div><p>مشاور قیمت هیچ قیمتی را عوض نمی‌کند. اگر پیشنهادی را قبول دارید، قیمت پایه را در فایل اصلی کالاها عوض کنید و از «کالاها ← پیش‌نمایش تغییرها» وارد کنید تا از مسیر تأیید عادی بگذرد. مبنای مقایسه فقط قیمت عمده تأییدشده رقبای هم‌طرح است.</p></div></div>
+{% if rep %}{% set d = rep.data %}
+<section class="panel" style="margin-top:0">
+  <header><h2>پیشنهادها — {{ rep.created_at|jdt }}</h2><span class="small muted">{{ d.n_changes|fa }} پیشنهاد تغییر · دلار {{ d.rate_toman|money }} تومان · <a href="{{ url_for('sales_advisor_xlsx', report_id=rep.id) }}">دریافت Excel</a></span></header>
+  <div class="tbl-wrap"><table class="data">
+    <thead><tr><th>کالا</th><th class="num">قیمت رسمی (تومان)</th><th class="num">میانه عمده رقبا</th><th>پیشنهاد</th><th class="num">قیمت پایه فعلی (ریال)</th><th class="num">قیمت پایه پیشنهادی</th><th>دلیل</th></tr></thead>
+    <tbody>{% for it in d["items"]|sort(attribute='action') if it.action != 'insufficient' %}<tr>
+      <td><a class="pn" href="{{ url_for('market_product', key=it.key) }}">{{ it.key }}</a><span class="sub">{{ it.name }}</span></td>
+      <td class="num">{{ it.official|toman }}</td><td class="num">{{ it.median|toman if it.median else '—' }}<span class="sub">{{ it.n|fa }} قیمت</span></td>
+      <td>{{ tag({'lower':'warn','raise':'info','keep':'good','floor':'crit'}.get(it.action, 'muted'), ADVISOR_ACTIONS[it.action]) }}</td>
+      <td class="num">{{ it.base|money }}</td><td class="num strong">{{ it.new_base|money if it.new_base else '—' }}</td><td class="small">{{ it.reason }}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="7">برای هیچ کالایی داده عمده کافی نیست؛ قیمت‌های عمده رقبا را در «ثبت قیمت رقیب» یا از منبع‌های عمده جمع کنید.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="body small muted">{{ d["items"]|selectattr('action', 'equalto', 'insufficient')|list|length|fa }} کالا هنوز داده عمده کافی ندارد.</div>
+</section>
+{% else %}<section class="panel" style="margin-top:0"><div class="body muted">هنوز پیشنهادی ساخته نشده است. مشاور قیمت بعد از هر گزارش هفتگی بازار خودکار اجرا می‌شود.</div></section>{% endif %}
+
+<section class="panel"><header><h2>بهای تمام‌شده (برای کف قیمت)</h2><span class="small muted">{% if min_margin is none %}حداقل حاشیه سود در settings.ini (بخش [advisor]، min_margin) خالی است؛ کف قیمت حساب نمی‌شود.{% else %}کف قیمت = بهای تمام‌شده × نرخ دلار ÷ (۱ − {{ min_margin|pctp }}){% endif %}</span></header>
+  <div class="body">
+    <form method="post" action="{{ url_for('sales_costs') }}" class="inline-form">{{ csrf() }}
+      <label class="field">کالا<select name="product_key" required>{% for p in products %}<option value="{{ p.key }}">{{ p.key }} — {{ p.name }}</option>{% endfor %}</select></label>
+      <label class="field">بهای تمام‌شده هر عدد (دلار؛ خالی = حذف)<input type="text" name="cost_usd" inputmode="decimal"></label>
+      <label class="field">منبع<input type="text" name="note"></label><button class="btn quiet">ثبت</button></form>
+    {% if costs %}<ul class="details-list" style="margin-top:10px">{% for k, c in costs|dictsort %}<li><span class="pn">{{ k }}</span>: {{ c.cost_usd|fa }} دلار <span class="muted">({{ who(c.updated_by) }}، {{ c.updated_at|jdate }})</span></li>{% endfor %}</ul>{% endif %}
+  </div>
+</section>
+{% endblock %}

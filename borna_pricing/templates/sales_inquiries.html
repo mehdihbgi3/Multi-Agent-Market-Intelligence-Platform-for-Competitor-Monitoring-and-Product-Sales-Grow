@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_sales.html" import subnav, status_tag, days_label with context %}
+{% block title %}استعلام‌ها{% endblock %}
+{% block content %}
+<div class="page-title"><h1>استعلام‌ها</h1><a class="btn" href="{{ url_for('sales_inquiry_new') }}">استعلام تازه</a></div>
+{{ subnav('sales_inquiries') }}
+<section class="panel" style="margin-top:0">
+  <header><div class="seg"><a href="{{ url_for('sales_inquiries') }}"{% if not status %} aria-current="true"{% endif %}>همه</a>{% for k, v in INQUIRY_STATUS.items() %}<a href="{{ url_for('sales_inquiries', status=k) }}"{% if status == k %} aria-current="true"{% endif %}>{{ v }}</a>{% endfor %}</div>
+    <div class="table-tools"><input type="search" placeholder="جست‌وجو" data-filter-for="inq" aria-label="جست‌وجو"><span class="small muted"><span data-count-for="inq">{{ rows|length|fa }}</span> استعلام</span></div></header>
+  <div class="tbl-wrap"><table class="data" id="inq">
+    <thead><tr><th class="num">شماره</th><th>تاریخ</th><th>مشتری</th><th>کالا</th><th class="num">تعداد</th><th class="num">قیمت پیشنهادی (تومان)</th><th>پرداخت</th><th>وضعیت</th><th>پیگیری / نتیجه</th></tr></thead>
+    <tbody>{% for i in rows %}<tr>
+      <td class="num"><a href="{{ url_for('sales_inquiry', inquiry_id=i.id) }}">{{ i.id|fa }}</a></td><td class="small">{{ i.created_at|jdate }}</td>
+      <td>{{ i.customer_name }}</td><td><span class="pn">{{ i.product_key }}</span></td><td class="num">{{ i.qty|money }}</td>
+      <td class="num">{{ i.quoted_price_rial|toman if i.quoted_price_rial else '—' }}</td><td>{{ days_label(i.payment_days) }}</td><td>{{ status_tag(i.status) }}</td>
+      <td class="small">{% if i.status == 'open' %}{{ i.follow_up_on|jdate if i.follow_up_on else '—' }}{% elif i.status == 'lost' %}{{ LOST_REASONS.get(i.lost_reason, '—') }}{% if i.competitor %}<span class="sub">{{ i.competitor }}</span>{% endif %}{% else %}{{ i.closed_at|jdate }}{% endif %}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="9">استعلامی نیست.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

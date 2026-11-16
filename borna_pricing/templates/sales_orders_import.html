@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf %}
+{% from "_sales.html" import subnav, days_label with context %}
+{% block title %}پیش‌نمایش ورود سفارش‌ها{% endblock %}
+{% block content %}
+<div class="page-title"><h1>پیش‌نمایش ورود سفارش‌ها</h1><p>{{ name }}</p></div>
+{{ subnav('sales_orders') }}
+{% if errors %}<div class="alert crit"><div><h2>{{ errors|length|fa }} سطر خطا دارد و وارد نمی‌شود</h2><ul class="details-list">{% for e in errors[:50] %}<li>{{ e }}</li>{% endfor %}</ul></div></div>{% endif %}
+<section class="panel" style="margin-top:0"><header><h2>{{ rows|length|fa }} ردیف آماده ورود</h2>
+  {% if rows %}<form method="post" action="{{ url_for('sales_orders_import_apply') }}">{{ csrf() }}<input type="hidden" name="token" value="{{ token }}"><button class="btn">ثبت سفارش‌ها</button></form>{% endif %}</header>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th class="num">سطر</th><th>تاریخ</th><th>مشتری</th><th>کالا</th><th class="num">تعداد</th><th class="num">قیمت واحد (ریال)</th><th>پرداخت</th><th>فاکتور</th></tr></thead><tbody>
+  {% for r in rows[:300] %}<tr><td class="num">{{ r.row|fa }}</td><td class="small">{{ r.date.isoformat()|jdate }}</td><td>{{ r.customer }}</td><td><span class="pn">{{ r.product_key }}</span></td><td class="num">{{ r.qty|money }}</td><td class="num">{{ r.price|money }}</td><td>{{ days_label(r.days) }}</td><td class="small">{{ r.ref or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

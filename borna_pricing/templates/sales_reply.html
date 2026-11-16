@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag, csrf %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}جواب مشتری{% endblock %}
+{% block content %}
+<div class="page-title"><h1>پیش‌نویس جواب به مشتری</h1><p>پرسش مشتری را بچسبانید؛ کالای مناسب و قیمت رسمی پیشنهاد می‌شود. پیام را خودتان می‌فرستید.</p></div>
+{{ subnav('sales_reply') }}
+<section class="panel" style="margin-top:0"><div class="body">
+  <form method="post" class="form-grid">{{ csrf() }}
+    <label class="field wide">پرسش مشتری<textarea name="question" maxlength="1500" required placeholder="مثلاً: سنسور اکسیژن زیمنس سوکت طوسی برای پژو ۴۰۵ دارید؟">{{ form.question or '' }}</textarea></label>
+    {% if ai_ready() %}<label class="checkline small wide"><input type="checkbox" name="use_model" value="1"{% if form.use_model == '1' %} checked{% endif %}> روان‌تر کردن متن با مدل زبانی</label>{% endif %}
+    <div class="wide"><button class="btn">ساخت پیش‌نویس</button> <span class="hint">شماره تلفن و ایمیل پیش از هر پردازش از متن حذف می‌شود.</span></div>
+  </form>
+</div></section>
+{% if result %}
+<section class="panel">
+  {% if result.error %}<div class="body"><p class="error-text">{{ result.error }}</p></div>{% else %}
+  <header><h2>پیش‌نویس</h2><span class="small muted">{{ 'مدل زبانی' if result.source == 'model' else 'قاعده' }}</span></header>
+  <div class="body"><textarea readonly rows="9" style="width:100%">{{ result.text }}</textarea>
+    {% for n in result.notes %}<p class="hint">{{ n }}</p>{% endfor %}</div>
+  {% if result.options %}<div class="tbl-wrap"><table class="data"><thead><tr><th>کالای پیشنهادی</th><th>تطبیق</th><th class="num">قیمت رسمی (تومان)</th><th class="num">حداقل سفارش</th></tr></thead><tbody>
+    {% for o in result.options %}<tr><td><a class="pn" href="{{ url_for('market_product', key=o.key) }}">{{ o.key }}</a><span class="sub">{{ o.name }}</span></td><td>{{ VERDICT_LABELS.get(o.verdict, o.verdict) }}</td><td class="num">{{ o.price_rial|toman if o.price_rial else '—' }}</td><td class="num">{{ o.moq|fa if o.moq else '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

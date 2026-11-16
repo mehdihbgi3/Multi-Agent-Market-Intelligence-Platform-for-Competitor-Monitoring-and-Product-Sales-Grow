@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}فروش چکی{% endblock %}
+{% block content %}
+<div class="page-title"><h1>ماشین‌حساب فروش چکی</h1><p>فروش نقد امروز در برابر چک مدت‌دار، با هزینه پول و افت ارزش ریال.</p></div>
+{{ subnav('sales_credit') }}
+<div class="cols">
+<section class="panel" style="margin-top:0"><header><h2>ورودی‌ها</h2></header><div class="body">
+  <form method="get" class="form-grid">
+    <input type="hidden" name="go" value="1">
+    <label class="field">کالا (قیمت از لیست رسمی)<select name="product_key"><option value="">— مبلغ دستی —</option>{% for p in products %}<option value="{{ p.key }}"{% if form.product_key == p.key %} selected{% endif %}>{{ p.key }} — {{ p.name }}{% if official.get(p.key) %} ({{ official[p.key]|toman }} تومان){% endif %}</option>{% endfor %}</select></label>
+    <label class="field">تعداد<input type="text" name="qty" value="{{ form.qty }}" inputmode="numeric" placeholder="۱۰۰"></label>
+    <label class="field">یا مبلغ نقد (تومان)<input type="text" name="cash" value="{{ form.cash }}" inputmode="numeric"></label>
+    <label class="field">مهلت چک (روز)<input type="text" name="days" value="{{ form.days }}" inputmode="numeric" list="check-days"><datalist id="check-days">{% for d in cfg.credit.check_days %}<option value="{{ d }}">{% endfor %}</datalist></label>
+    <label class="field">هزینه سالانه پول (درصد)<input type="text" name="rate" value="{{ form.rate }}" placeholder="مثلاً 35"></label>
+    <label class="field">پیش‌بینی رشد سالانه دلار (درصد، اختیاری)<input type="text" name="dollar" value="{{ form.dollar }}" placeholder="مثلاً 30"></label>
+    <label class="field">مبلغ چکی که مشتری پیشنهاد داده (تومان، اختیاری)<input type="text" name="offered" value="{{ form.offered }}" inputmode="numeric"></label>
+    <div class="wide"><button class="btn">حساب کن</button></div>
+  </form>
+  {% if cfg.credit.annual_cost_of_money is none %}<p class="hint">مالی می‌تواند نرخ هزینه پول و پیش‌بینی دلار را در settings.ini (بخش [credit]) بگذارد تا هر بار پر نشود.</p>{% endif %}
+</div></section>
+<section class="panel" style="margin-top:0"><header><h2>نتیجه</h2></header><div class="body">
+  {% if error %}<p class="error-text">{{ error }}</p>
+  {% elif result %}{% set q = result %}
+  <dl class="kv">
+    <dt>مبلغ نقد امروز</dt><dd><b class="num">{{ q.cash_rial|toman }}</b> تومان</dd>
+    <dt>کمترین مبلغ چک {{ q.days|fa }} روزه</dt><dd><b class="num">{{ q.min_check_rial|toman }}</b> تومان <span class="small muted">(برای جبران هزینه پول {{ q.annual_rate|pctp }} در سال)</span></dd>
+    {% if q.dollar_safe_rial %}<dt>مبلغ چک برای حفظ ارزش دلاری</dt><dd><b class="num">{{ q.dollar_safe_rial|toman }}</b> تومان <span class="small muted">(اگر دلار سالانه {{ q.annual_dollar|pctp }} بالا برود)</span></dd>{% endif %}
+    {% if q.offered_rial %}
+    <dt>ارزش امروزِ چک پیشنهادی</dt><dd><b class="num">{{ q.offered_pv_rial|toman }}</b> تومان — {% if q.offered_vs_cash < 0 %}<span class="pos-pricier">{{ (-q.offered_vs_cash)|pctp }} کمتر از نقد</span>{% else %}<span class="pos-cheaper">{{ q.offered_vs_cash|pctp }} بیشتر از نقد</span>{% endif %}</dd>
+    {% if q.offered_dollar_loss is not none %}<dt>ارزش دلاری چک در سررسید</dt><dd>{% if q.offered_dollar_loss < 0 %}<span class="pos-pricier">{{ (-q.offered_dollar_loss)|pctp }} کمتر از فروش نقد امروز</span>{% else %}<span class="pos-cheaper">{{ q.offered_dollar_loss|pctp }} بیشتر از فروش نقد امروز</span>{% endif %}</dd>{% endif %}
+    {% endif %}
+  </dl>
+  <p class="hint">کمترین مبلغ چک برابر است با مبلغ نقد ضرب در (۱ + نرخ سالانه) به توان (روز ÷ ۳۶۵). ارزش امروز چک برابر است با مبلغ چک تقسیم بر همین عدد. ریسک وصول نشدن چک جدا باید سنجیده شود.</p>
+  {% else %}<p class="muted">ورودی‌ها را پر کنید و «حساب کن» را بزنید.</p>{% endif %}
+</div></section>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_ui.html" import tag %}
+{% from "_sales.html" import subnav with context %}
+{% block title %}مشتری‌ها{% endblock %}
+{% block content %}
+<div class="page-title"><h1>مشتری‌ها</h1><a class="btn" href="{{ url_for('sales_customer_new') }}">مشتری تازه</a></div>
+{{ subnav('sales_customers') }}
+<section class="panel" style="margin-top:0">
+  <header><div class="table-tools"><input type="search" placeholder="جست‌وجو" data-filter-for="cus" aria-label="جست‌وجو"><span class="small muted"><span data-count-for="cus">{{ rows|length|fa }}</span> مشتری</span></div></header>
+  <div class="tbl-wrap"><table class="data" id="cus">
+    <thead><tr><th>نام</th><th>نوع</th><th>شهر</th><th>تلفن</th><th class="num">سفارش</th><th>آخرین سفارش</th><th class="num">جمع خرید (تومان)</th><th class="num">استعلام باز</th></tr></thead>
+    <tbody>{% for c in rows %}<tr>
+      <td><a href="{{ url_for('sales_customer', customer_id=c.id) }}">{{ c.name }}</a>{% if not c.active %} {{ tag('muted', 'غیرفعال') }}{% endif %}{% if c.source == 'lead' %} {{ tag('info', 'از مشتریان احتمالی') }}{% endif %}</td>
+      <td>{{ CUSTOMER_KINDS.get(c.kind, c.kind) }}</td><td>{{ c.city or '—' }}</td><td><span class="pn">{{ c.phone or '—' }}</span></td>
+      <td class="num">{{ c.n_orders|fa }}</td><td class="small">{{ c.last_order|jdate if c.last_order else '—' }}</td><td class="num">{{ c.total_rial|toman if c.total_rial else '—' }}</td><td class="num">{{ c.open_inquiries|fa }}</td></tr>
+    {% else %}<tr class="empty-row"><td colspan="8">هنوز مشتری‌ای ثبت نشده است.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
